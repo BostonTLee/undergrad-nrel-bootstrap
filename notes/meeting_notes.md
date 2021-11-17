@@ -13,4 +13,4 @@
     - Evan: Figure out the PV system model and see how it is used in each test case
     - Boston: Use the API or website to get a more-or-less complete
     data set; if that gets done, do a Kernel Density Estimate
-
+- NREL API: https://nsrdb.nrel.gov/data-sets/api-instructions.html#Take-a-Look-at-the-Results
