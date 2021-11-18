@@ -40,3 +40,7 @@ vignettes/*.pdf
 
 # Secrets config (prevent accidental leak)
 data_preprocessing/config.toml
+
+# Prevent CSVs outside intended directory (prompted by mistake)
+*.csv
+!data/*.csv
