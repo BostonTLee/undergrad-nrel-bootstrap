@@ -1,0 +1,9 @@
+# Your full name, use '+' instead of spaces.
+name = 'John+Smith'
+# Your reason for using the NSRDB.
+reason= 'beta+testing'
+# Your affiliation
+affiliation = 'my+institution'
+# Your email address
+email = 'john.smith@server.com'
+api_key = 'yourKey'
