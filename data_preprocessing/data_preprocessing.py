@@ -5,6 +5,25 @@ import toml
 
 
 def pull_nrel_data_single_year(lat, lon, year, config_path):
+    """Pull data from the NREL database.
+
+    Pull data from the NREL database for the location specified
+    by `lat` and `long`, for the year `year`.
+    Relevant user-specific API variables are kept in a
+    TOML file at `config_path`,
+    and those variables are parsed to form a complete query.
+
+    Args:
+        lat (float): Latitude of the location of the data
+        lon (float): Longitude of the location of the data
+        year (int): Year of the data
+        config_path (str): Filepath to the TOML API variable file
+
+    Returns:
+        pd.DataFrame: Data from the NREL database for the year
+            and location specified.
+
+    """
     config_dict = toml.load("config.toml")
     attributes = "ghi,dhi,dni,wind_speed,air_temperature,solar_zenith_angle"
     # Set leap year to true or false. True will return leap day data if present, false will not.
@@ -41,6 +60,27 @@ def pull_nrel_data_single_year(lat, lon, year, config_path):
 def pull_nrel_data_multiple_years(
     lat, lon, config_path, years=range(2001, 2011)
 ):
+    """Pull data from the NREL database for multiple years.
+
+    Pull data from the NREL database for the location specified
+    by `lat` and `long`, for all years in `years`.
+    Data querying is intentionally slowed to prevent
+    high query rate to the database.
+    Errors are reported for any data not in the database,
+    but database query failure does not halt function operation.
+
+    Args:
+        lat (float): Latitude of the location of the data
+        lon (float): Longitude of the location of the data
+        config_path (str): Filepath to the TOML API variable file
+        years (iterable): Iterable containing the years for which
+            data should be pulled.
+
+    Returns:
+        pd.DataFrame: Data from the NREL database for the years
+            and location specified.
+
+    """
     df_list = []
     for year in years:
         try:
