@@ -10,6 +10,9 @@ from random import sample
 random.seed(400)
 
 # Benchmark 33-Node Test System (https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=25627)
+
+# Node class for storing household attributes, DER allocations, and node connectivity
+# TODO: Add class method for for calculating power flow
 class node:
     def __init__(self, ActiveMean, ReactiveMean, In, Out, TestCase):
         self.ActiveMean = ActiveMean
@@ -181,6 +184,7 @@ windNodes = Nodes[21:32]
 for windNode in windNodes:
     testCase3[windNode].addDER('wind')
 
+# TODO: Write function to recursively? perform forward and back propogration of power flow calculation
 
 
 
