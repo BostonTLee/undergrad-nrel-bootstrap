@@ -58,7 +58,7 @@ def pull_nrel_data_single_year(lat, lon, year, config_path):
 
 
 def pull_nrel_data_multiple_years(
-    lat, lon, config_path, years=range(2001, 2011)
+    lat, lon, config_path, years=range(1998, 2011)
 ):
     """Pull data from the NREL database for multiple years.
 
@@ -100,7 +100,7 @@ def main():
     # LA coordinates
     lat, lon = 34.0522, -118.2437
     data = pull_nrel_data_multiple_years(lat, lon, "config.toml")
-    data.to_csv("../data/irradiance_full.csv")
+    data.to_csv("../data/irradiance_full.csv", index=False)
 
 
 if __name__ == "__main__":
