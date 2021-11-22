@@ -1,0 +1,46 @@
+Information about PV Modules/Systems:
+
+Photovoltaic (PV) systems are systems used in order to harness energy from Solar Panels. Each individual solar panel can be hooked to its own micro PV system, or a 
+cluster of panels can be attached through one PV system; converting, diverting, and inverting all through the same system. This can be beneficial when panels are located
+on different parts of a roof/require different angles, therefore collecting varrying levels of energy throughout the day. Having a PV system for each individual 
+solar panel gives the advantage of collecting unique data based on solar irradiance, panel degree, peak hours of colletion, etc..
+
+Converting/Inverting: In each PV system there can be a micro converter or a micro inverter. A micro converter is used in most residential solar panel systems; this 
+converts Direct Current (DC) energy collected by the solar panel into usable Alternating Current (AC) energy. Most residential homes don't have a usage for DC energy. 
+From the definition of converter, it is easy to assume that an inverter just does the opposite. An inverter takes any excess AC energy, or energy collected from the 
+grid and converts it into DC energy. 
+
+Diverting: After the energy is converted from DC to AC the system has three options on what to do. One, the energy created can be put right back into the home/building, 
+lowering the total energy intake/usage. Two, if there is any excess energy after internal usage, it can be diverted to the entire energy grid (think city grid) for 
+others to use. This isn't so common as most solar panels don't create enough energy to completely make up for a homes electricity usage*. If it is the case, individuals 
+would get some sort of copensation for their excess energy (think of it being sold and used somewhere else in the grid). Third, and quite uncommon for individuals 
+looking at solar panels for green usages is storing the energy extenerally (e.g. large batteries).  
+
+The PV model used in our article refrences The Consortium For Electric Reliability Technology Solutions (CERTS). This is the idea of making each individual PV system 
+in a select grid act as voltage sources. This is also possible for individual systems not connected to the grid. Capable of maintaining a certain level of voltage 
+regardless of the total output current. 
+
+Figure 3 shows the Maximum Power Point Tracking (MPPT) algorithm which limits the power-frequency (P-f) droop controller. When we see a decrease in solar irradiance 
+the P-max also decreases (figure 4 from P-max0 to P-max1). This creates a tradeoff allowing an increase in frequency, to make up for the lost voltage in the PV model. 
+
+Solar Irradiance data needs to be adjusted for the incidence angle. It is said to adjust it through Section 3 - Part A: all this does is mention an algorithm and 
+references a different article (eye-roll). However, in Section 3 - Part D-2 we are introduced to a Irradiance Astronomical Model which states that this expression 
+generates an incidence angle which can be used in a formula to determine effective solar irradiance. 
+
+  cos Θ(t, n) = sinδ(t, n)sin(L)cos(β)
+                  − sinδ(t, n)cos(L)sin(β)cos(α)
+                    + cosδ(t, n)cos(L)cos(β)cosω(t, n)
+                      + cosδ(t, n)sin(L)sin(β)cos(α)cosω(t, n)
+                        + cosδ(t, n)sin(β)sin(α)sinω(t, n)
+  δ ∈ [−23.45◦, 23.45◦] == Solar Declination angle
+  L == Latitude
+  β == Inclination of the solar panel
+  α == Asimuthal displacement
+  ω(t, n) ∈ [0, 360◦] == The hour angle
+  
+  The formula for the effective solar irradiance is as stated:
+  
+  I_{eff}(t, n) = I_{sun}(t, n) · cosΘ(t, n)
+
+*For Reference: 13 Solar Panels rated at 200 watts with an average irradiance of 4 peak hours of sun (varries based on region) creates 10 Kilowatt-hours (kWh) of 
+electricity per day. The average american household consumes 11,000 kWh of electricity a year; averaging to approximately 30.14 kWh per day.   
