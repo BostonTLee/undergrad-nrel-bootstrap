@@ -29,7 +29,7 @@ def pull_nrel_data_single_year(lat, lon, year, config_path):
     # Set leap year to true or false. True will return leap day data if present, false will not.
     leap_year = "false"
     # Set time interval in minutes, i.e., '30' is half hour intervals. Valid intervals are 30 & 60.
-    interval = "30"
+    interval = "60"
     # Specify Coordinated Universal Time (UTC), 'true' will use UTC, 'false' will use the local time zone of the data.
     # NOTE: In order to use the NSRDB data in SAM, you must specify UTC as 'false'. SAM requires the data to be in the
     # local time zone.
