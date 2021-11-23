@@ -186,5 +186,13 @@ for windNode in windNodes:
 
 # TODO: Write function to recursively? perform forward and back propogration of power flow calculation
 
-
+# Notes:
+#  load demand modeled according a Gaussian
+#  'nominal capacity is equal to the mean value of the total load demand at each node'
+#  probabalistic power flow handled using MCS
+#  simulation depends on DER locations and pdfs of irradiance and load demand
+#  backward/forward sweep method used to solve each scenario
+#  backward sweep begins at terminal node and moves towards the main node
+#  all voltages initially set to 1 pu (electrical engineering 'per unit')
+#  forward sweep is essentially a voltage drop calculation
 
