@@ -171,6 +171,7 @@ class AstronomicalAdjustment:
         The value of `i_sun` is determined from the NREL database.
 
         Args:
+            i_sun (float): Instantaneous solar radiance
             time (int): Time of the day, in hours
             day_number (int): Day number of the year, beginning January 1
             latitude (float): The latitude of the location
