@@ -33,7 +33,7 @@ def pull_nrel_data_single_year(lat, lon, year, config_path):
     # Specify Coordinated Universal Time (UTC), 'true' will use UTC, 'false' will use the local time zone of the data.
     # NOTE: In order to use the NSRDB data in SAM, you must specify UTC as 'false'. SAM requires the data to be in the
     # local time zone.
-    utc = "true"
+    utc = "false"
     # Please join our mailing list so we can keep you up-to-date on new developments.
     mailing_list = "false"
 
