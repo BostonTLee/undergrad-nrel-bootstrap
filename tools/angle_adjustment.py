@@ -108,9 +108,7 @@ class AstronomicalAdjustment:
 
         """
         D = cls.d_helper(cls, day_number)
-        return (
-            9.87 * math.sin(2 * D) - 7.53 * math.cos(D) - 1.5 * math.sin(D)
-        ) / 60
+        return (9.87 * math.sin(2 * D) - 7.53 * math.cos(D) - 1.5 * math.sin(D)) / 60
 
     def angle_sun_surface(cls, time, day_number, latitude, longitude, utc_off):
         """Return the cosine of the angle between the sun and the panel surface.
@@ -166,37 +164,39 @@ class AstronomicalAdjustment:
 
     def construct_time(cls, hour, minute):
         """Return the 24-hour time.
-        
+
         This helper funtion uses hour and minute to derive the 24-hour time.
-        
+
         Args:
             hour (int): Hour of the day
             minute (int): Minute of the hour
-            
+
         Returns:
             float: Returns the 24-hour time in hours
-            
+
         """
         return hour + minute / 60
 
     def construct_day(cls, month, day):
         """Return the day of the year.
-        
+
         This helper funtion uses month and day to derive the day of the year.
-        
+
         Args:
             month (int): Month of the year
             day (int): Day of the month
-            
+
         Returns:
             int: Returns the day of the year out of 365 (or 366)
-            
+
         """
 
         cumulative_days = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        return sum(cumulative_days[0:int(month - 1)]) + day
+        return sum(cumulative_days[0 : int(month - 1)]) + day
 
-    def effective_solar_radiance(cls, i_sun, month, day, hour, minute, latitude, longitude, utc_off):
+    def effective_solar_radiance(
+        cls, i_sun, month, day, hour, minute, latitude, longitude, utc_off
+    ):
         """Return the effective solar radiance as a function of time.
 
         The value of `i_sun` is determined from the NREL database.
@@ -224,8 +224,9 @@ class AstronomicalAdjustment:
             cls.angle_sun_surface(cls, time, day_number, latitude, longitude, utc_off),
         )
 
+
 if __name__ == "__main__":
-    data = pd.read_csv('./data/irradiance_full.csv')
+    data = pd.read_csv("./data/irradiance_full.csv")
 
     lat = 34.05
     long = 28.24
@@ -233,7 +234,19 @@ if __name__ == "__main__":
 
     results = []
     for index, row in data.iterrows():
-        results.append(AstronomicalAdjustment.effective_solar_radiance(AstronomicalAdjustment, row['DHI'], row['Month'], row['Day'], row['Hour'], row['Minute'], lat, long, utc))
+        results.append(
+            AstronomicalAdjustment.effective_solar_radiance(
+                AstronomicalAdjustment,
+                row["DHI"],
+                row["Month"],
+                row["Day"],
+                row["Hour"],
+                row["Minute"],
+                lat,
+                long,
+                utc,
+            )
+        )
 
     print(np.mean(results))
     plot = plt.hist(results, bins=20)
