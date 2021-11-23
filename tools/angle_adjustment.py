@@ -194,7 +194,7 @@ class AstronomicalAdjustment:
         """
 
         cumulative_days = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        return sum(cumulative_days[0:month - 1]) + day
+        return sum(cumulative_days[0:int(month - 1)]) + day
 
     def effective_solar_radiance(cls, i_sun, month, day, hour, minute, latitude, longitude, utc_off):
         """Return the effective solar radiance as a function of time.
