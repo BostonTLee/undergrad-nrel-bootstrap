@@ -1,7 +1,9 @@
 """Provides a class encapsulating effective solar irradiance calculations."""
 import math
 
+import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class AstronomicalAdjustment:
@@ -50,10 +52,10 @@ class AstronomicalAdjustment:
         """
         EARTH_ANGLE = math.radians(23.45)
         C = math.sin(EARTH_ANGLE)
-        D = cls.d_helper(day_number)
-        return math.arcsin(C * math.sin(D))
+        D = cls.d_helper(cls, day_number)
+        return np.arcsin(C * math.sin(D))
 
-    def hour_angle(cls, time, day_number):
+    def hour_angle(cls, time, day_number, longitude, utc_off):
         """Return the hour angle for a given day and time.
 
         The hour angle is the angle of the sun's rays given the
@@ -67,7 +69,7 @@ class AstronomicalAdjustment:
 
         """
         hour_angle_degrees = (
-            15 * cls.apparent_solar_time(time, day_number) - 12
+            15 * cls.apparent_solar_time(cls, time, day_number, longitude, utc_off) - 12
         )
         return math.radians(hour_angle_degrees)
 
@@ -91,7 +93,7 @@ class AstronomicalAdjustment:
         gma = utc_off * 15
         time_displacement = (longitude - gma) / 15
         # FIXME what is t'?
-        return time + time_displacement + cls.equation_of_time(day_number)
+        return time + time_displacement + cls.equation_of_time(cls, day_number)
 
     def equation_of_time(cls, day_number):
         """Return the equation of time for a given day.
@@ -106,7 +108,7 @@ class AstronomicalAdjustment:
             float: Returns the declination angle in radians
 
         """
-        D = cls.d_helper(day_number)
+        D = cls.d_helper(cls, day_number)
         return (
             9.87 * math.sin(2 * D) - 7.53 * math.cos(D) - 1.5 * math.sin(D)
         ) / 60
@@ -130,8 +132,8 @@ class AstronomicalAdjustment:
         """
         ALPHA = cls.ALPHA
         BETA = cls.BETA
-        declination_angle = cls.declination_angle(day_number)
-        hour_angle = cls.hour_angle(time, day_number)
+        declination_angle = cls.declination_angle(cls, day_number)
+        hour_angle = cls.hour_angle(cls, time, day_number, longitude, utc_off)
         latitude = np.radians(latitude)
         ret_val = (
             (math.sin(declination_angle) * math.sin(latitude) * math.cos(BETA))
@@ -182,9 +184,23 @@ class AstronomicalAdjustment:
             float: Returns the declination angle in radians
 
         """
-        return i_sun * math.max(
+        return i_sun * max(
             0,
             cls.angle_sun_surface(
                 cls, time, day_number, latitude, longitude, utc_off
             ),
         )
+
+if __name__ == "__main__":
+    data = pd.read_csv('./data/irradiance_full.csv')
+    results = []
+    for index, row in data.iterrows():
+        results.append(AstronomicalAdjustment.effective_solar_radiance(AstronomicalAdjustment, row['DHI'], row['Hour'], row['Day'], 34, 28, -8))
+    print(np.mean(results))
+    plot = plt.hist(results, bins=20)
+    plt.show()
+
+# TODO: 
+#  Degrees vs radians
+#  Function to calculate t, N
+#  More accurate lat, long
