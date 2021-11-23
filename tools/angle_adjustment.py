@@ -51,9 +51,8 @@ class AstronomicalAdjustment:
 
         """
         EARTH_ANGLE = math.radians(23.45)
-        C = math.sin(EARTH_ANGLE)
         D = cls.d_helper(cls, day_number)
-        return np.arcsin(C * math.sin(D))
+        return np.arcsin(math.sin(EARTH_ANGLE) * math.sin(D))
 
     def hour_angle(cls, time, day_number, longitude, utc_off):
         """Return the hour angle for a given day and time.
@@ -65,7 +64,7 @@ class AstronomicalAdjustment:
             day_number (int): Day number of the year, beginning January 1
 
         Returns:
-            float: Returns the declination angle in radians
+            float: Returns the hour angle in radians
 
         """
         hour_angle_degrees = (
@@ -87,12 +86,12 @@ class AstronomicalAdjustment:
             utc_off (float): The time offset from UTC (in hours)
 
         Returns:
-            float: Returns the declination angle in radians
+            float: Returns the apparent solar time in hours
 
         """
         gma = utc_off * 15
         time_displacement = (longitude - gma) / 15
-        # FIXME what is t'?
+        # FIXME adjust for daylight savings?
         return time + time_displacement + cls.equation_of_time(cls, day_number)
 
     def equation_of_time(cls, day_number):
@@ -105,7 +104,7 @@ class AstronomicalAdjustment:
             day_number (int): Day number of the year, beginning January 1
 
         Returns:
-            float: Returns the declination angle in radians
+            float: Returns the value of the equation of time of a given day number
 
         """
         D = cls.d_helper(cls, day_number)
@@ -127,7 +126,7 @@ class AstronomicalAdjustment:
             utc_off (float): The time offset from UTC (in hours)
 
         Returns:
-            float: Returns the declination angle in radians
+            float: Returns the cosine of the angle between the sun and the panel surface
 
         """
         ALPHA = cls.ALPHA
@@ -165,42 +164,77 @@ class AstronomicalAdjustment:
         )
         return ret_val
 
-    def effective_solar_radiance(
-        cls, i_sun, time, day_number, latitude, longitude, utc_off
-    ):
+    def construct_time(cls, hour, minute):
+        """Return the 24-hour time.
+        
+        This helper funtion uses hour and minute to derive the 24-hour time.
+        
+        Args:
+            hour (int): Hour of the day
+            minute (int): Minute of the hour
+            
+        Returns:
+            float: Returns the 24-hour time in hours
+            
+        """
+        return hour + minute / 60
+
+    def construct_day(cls, month, day):
+        """Return the day of the year.
+        
+        This helper funtion uses month and day to derive the day of the year.
+        
+        Args:
+            month (int): Month of the year
+            day (int): Day of the month
+            
+        Returns:
+            int: Returns the day of the year out of 365 (or 366)
+            
+        """
+
+        cumulative_days = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        return sum(cumulative_days[0:month - 1]) + day
+
+    def effective_solar_radiance(cls, i_sun, month, day, hour, minute, latitude, longitude, utc_off):
         """Return the effective solar radiance as a function of time.
 
         The value of `i_sun` is determined from the NREL database.
 
         Args:
             i_sun (float): Instantaneous solar radiance
-            time (int): Time of the day, in hours
-            day_number (int): Day number of the year, beginning January 1
+            month (int): Month of the year
+            day (int): Day of the month
+            hour (int): Hour of the day
+            minute (int): Minute of the hour
             latitude (float): The latitude of the location
             longitude (float): The longitude of the location
-            utc_off (float): The time offset from UTC (in hours)
+            utc_off (int): The time offset from UTC (in hours)
 
         Returns:
-            float: Returns the declination angle in radians
+            float: Returns the effective solar irradiance in W/m^2
 
         """
+
+        time = cls.construct_time(cls, hour, minute)
+        day_number = cls.construct_day(cls, month, day)
+
         return i_sun * max(
             0,
-            cls.angle_sun_surface(
-                cls, time, day_number, latitude, longitude, utc_off
-            ),
+            cls.angle_sun_surface(cls, time, day_number, latitude, longitude, utc_off),
         )
 
 if __name__ == "__main__":
     data = pd.read_csv('./data/irradiance_full.csv')
+
+    lat = 34.05
+    long = 28.24
+    utc = -8
+
     results = []
     for index, row in data.iterrows():
-        results.append(AstronomicalAdjustment.effective_solar_radiance(AstronomicalAdjustment, row['DHI'], row['Hour'], row['Day'], 34, 28, -8))
+        results.append(AstronomicalAdjustment.effective_solar_radiance(AstronomicalAdjustment, row['DHI'], row['Month'], row['Day'], row['Hour'], row['Minute'], lat, long, utc))
+
     print(np.mean(results))
     plot = plt.hist(results, bins=20)
     plt.show()
-
-# TODO: 
-#  Degrees vs radians
-#  Function to calculate t, N
-#  More accurate lat, long
