@@ -1,6 +1,7 @@
 """Provides a class encapsulating current output calculations from the photovoltaic module."""
 import math
 
+
 class PVModule:
     """Provides an interface for current output calculation.
 
@@ -10,8 +11,8 @@ class PVModule:
 
     """
 
-    q = 1.6E-19
-    k = 1.38E-23
+    q = 1.6e-19
+    k = 1.38e-23
 
     def radiation_rate(cls, i_eff):
         """Returns the radiation rate of a photovoltaic module.
@@ -23,14 +24,14 @@ class PVModule:
 
         Returns:
             float: Returns the radiation rate constant
-            
+
         """
-        return .0001 * i_eff
-    
+        return 0.0001 * i_eff
+
     def light_generated_current(cls, sc_current, i_eff):
         """Return the current generated from light in a photovoltaic module.
 
-        The value of `i_eff` is determined using the AstronomicalAdjustment class. A reasonable value for sc_current was given in the source paper. 
+        The value of `i_eff` is determined using the AstronomicalAdjustment class. A reasonable value for sc_current was given in the source paper.
 
         Args:
             sc_current (float): Short circuit current- the maximum current of the system
@@ -63,12 +64,12 @@ class PVModule:
         The value of `i_eff` is determined using the AstronomicalAdjustment class.
 
         Args:
-            voltage (float): 
-            ideality (float): 
+            voltage (float):
+            ideality (float):
             temperature (int): Temperature in degrees Celsius
             leakage (float):
             sc_current (float): Short circuit current- the maximum current of the system
-            i_eff (float): Effective solar irradiance 
+            i_eff (float): Effective solar irradiance
 
         Returns:
             float: Returns the current output of a photovoltaic module in coulombs
@@ -78,10 +79,10 @@ class PVModule:
         k = cls.k
         light_current = cls.light_generated_current(cls, sc_current, i_eff)
         temp = cls.convert_temperate(cls, temperature)
-        return light_current - leakage * (math.exp(q * voltage / ideality * k * temperature) - 1)
+        return light_current - leakage * (
+            math.exp(q * voltage / ideality * k * temperature) - 1
+        )
 
 
 # where do voltage, leakage, and ideality come from?
 # source paper assumes sc_current=5
-
-
