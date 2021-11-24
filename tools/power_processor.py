@@ -1,10 +1,9 @@
 """Provides a class encapsulating power processing calculations."""
 import numpy as np
 
-class PowerProcessor:
-    """Provides an interface for power processing calculation.
 
-    """
+class PowerProcessor:
+    """Provides an interface for power processing calculation."""
 
     def ideal_power(cls, n_parallel, n_series, i_out, voltage):
         """Returns the ideal maximum power output from a photovoltaic module.
@@ -17,7 +16,7 @@ class PowerProcessor:
             n_parallel (int): The number of PV cells connected in parallel
             n_series (int): The number of PV cells connected in series
             i_out (float): The output current from a PV module
-            voltage (float): 
+            voltage (float):
 
         Returns:
             float: Returns the ideal maximum power output from a photovoltaic module
@@ -35,7 +34,7 @@ class PowerProcessor:
             n_parallel (int): The number of PV cells connected in parallel
             n_series (int): The number of PV cells connected in series
             i_out (float): The output current from a PV module
-            voltage (float): 
+            voltage (float):
             efficiency (float): The conversion efficiency of the power processor used
 
         Returns:
@@ -44,6 +43,7 @@ class PowerProcessor:
         """
         max_power = cls.ideal_power(cls, n_parallel, n_series, i_out, voltage)
         return efficiency * max_power
+
 
 # what range of voltages am I maximizing over?
 # source paper assumes efficiency=.5
