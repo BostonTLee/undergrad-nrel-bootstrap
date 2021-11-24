@@ -45,18 +45,18 @@ class PVModule:
         return sc_current * F
 
     def convert_temperature(cls, temperature):
-        """Converts temperature from degrees Celsius to degress Kelvin^3.
+        """Converts temperature from degrees Celsius to degress Kelvin.
 
-        Degree Kelvin^3 specified in source paper.
+        Degrees Kelvin specified in source paper.
 
         Args:
             temperature (int): Temperature in degrees Celsius
 
         Returns:
-            float: Returns the temperature in degrees Kelvin^3
+            float: Returns the temperature in degrees Kelvin
 
         """
-        return (temperature + 273.15) ** 3
+        return temperature + 273.15
 
     def current_output(cls, voltage, ideality, temperature, sc_current, leakage, i_eff):
         """Return the current output of a photovoltaic module.
