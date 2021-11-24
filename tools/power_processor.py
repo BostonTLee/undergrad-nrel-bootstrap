@@ -8,8 +8,8 @@ class PowerProcessor:
     def ideal_power(cls, n_parallel, n_series, i_out, sc_voltage):
         """Returns the ideal maximum power output from the grid.
 
-        # FIXME
-        Power is maximized over ... values of voltage.
+        Power is maximized over 20 values of voltage,
+        as found in the source included with the paper
 
         Args:
             n_parallel (int): The number of PV cells connected in parallel
@@ -24,7 +24,7 @@ class PowerProcessor:
         # code for the paper
         N_SAMPLES = 20
         voltage = np.linspace(0, sc_voltage, N_SAMPLES)
-        return n_parallel * n_series * np.max(i_out * voltage)
+        return n_parallel * n_series * np.amax(i_out * voltage)
 
     def estimated_power(cls, n_parallel, n_series, i_out, voltage, efficiency):
         """Returns the estimated processed power output the grid.
@@ -33,11 +33,10 @@ class PowerProcessor:
         Source paper assumes efficiency=.5
 
         Args:
-        # FIXME
             n_parallel (int): The number of PV cells connected in parallel
             n_series (int): The number of PV cells connected in series
             i_out (float): The output current from a PV module
-            voltage (float):
+            voltage (float): The solar cell voltage
             efficiency (float): The conversion efficiency of the power processor used
 
         Returns:
