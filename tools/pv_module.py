@@ -58,31 +58,53 @@ class PVModule:
         """
         return temperature + 273.15
 
-    def current_output(cls, voltage, ideality, temperature, sc_current, leakage, i_eff):
+    def current_output(
+        cls,
+        voltage,
+        ideality,
+        temperature,
+        sc_current,
+        leakage,
+        i_eff,
+        n_parallel,
+        n_series,
+    ):
         """Return the current output of a photovoltaic module.
 
         The value of `i_eff` is determined using the AstronomicalAdjustment class.
 
-        Args:
-            voltage (float):
-            ideality (float):
-            temperature (int): Temperature in degrees Celsius
-            leakage (float):
-            sc_current (float): Short circuit current- the maximum current of the system
-            i_eff (float): Effective solar irradiance
+        Leakage is calculated using the logic from the code for the project in
+        the paper.  The calculations for this quantity is not described in the
+        paper.
 
-        Returns:
-            float: Returns the current output of a photovoltaic module in coulombs
+        Source paper assumes sc_current=5
+        Source paper (code) assumes ideality=1.5
+
+        Where does voltage come from?
+
+
+          Args:
+              voltage (float):
+              ideality (float):
+              temperature (int): Temperature in degrees Celsius
+              sc_current (float): Short circuit current- the maximum current of the system
+              i_eff (float): Effective solar irradiance
+              n_parallel (int): The number of panels in parallel
+              n_series (int): The number of groups of panels in series
+
+          Returns:
+              float: Returns the current output of a photovoltaic module in coulombs
 
         """
         q = cls.q
         k = cls.k
+        temperature_kelvin = cls.convert_temperate(cls, temperature)
+        leakage = (sc_current / n_parallel) / (
+            math.exp(
+                q * (voltage / n_series) / (ideality * k * temperature_kelvin)
+            )
+        )
         light_current = cls.light_generated_current(cls, sc_current, i_eff)
-        temp = cls.convert_temperate(cls, temperature)
         return light_current - leakage * (
             math.exp(q * voltage / ideality * k * temperature) - 1
         )
-
-
-# where do voltage, leakage, and ideality come from?
-# source paper assumes sc_current=5
