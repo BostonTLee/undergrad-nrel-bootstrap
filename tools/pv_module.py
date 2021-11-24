@@ -63,7 +63,7 @@ class PVModule:
         voltage,
         ideality,
         temperature,
-        sc_current,
+        sc_current_module,
         leakage,
         i_eff,
         n_parallel,
@@ -81,30 +81,45 @@ class PVModule:
         Source paper (code) assumes ideality=1.5
 
         Where does voltage come from?
+        It appears voltage is adjusted as part of the MPPT algorithm;
+        we are maximizing over voltage, where voltage <= v_sc.
 
 
-          Args:
-              voltage (float):
-              ideality (float):
-              temperature (int): Temperature in degrees Celsius
-              sc_current (float): Short circuit current- the maximum current of the system
-              i_eff (float): Effective solar irradiance
-              n_parallel (int): The number of panels in parallel
-              n_series (int): The number of groups of panels in series
+        Args:
+            voltage (float): The cell voltage, less than the SC voltage
+            ideality (float):
+            temperature (int): Temperature in degrees Celsius
+            sc_current_module (float): Short circuit current
+                of a solar module- the maximum current of the system
+            i_eff (float): Effective solar irradiance
+            n_parallel (int): The number of panels in parallel
+            n_series (int): The number of groups of panels in series
 
-          Returns:
-              float: Returns the current output of a photovoltaic module in coulombs
+        Returns:
+            float: Returns the current output of a photovoltaic module in coulombs
 
         """
         q = cls.q
         k = cls.k
         temperature_kelvin = cls.convert_temperate(cls, temperature)
-        leakage = (sc_current / n_parallel) / (
+
+        sc_current_single_cell = sc_current_module / n_parallel
+
+        oc_voltage_module = (ideality * k * (temperature) / q) * (
+            math.log(sc_current_module / leakage + 1)
+        )
+        oc_voltage_single_cell = oc_voltage_module / n_series
+
+        light_current = cls.light_generated_current(
+            cls, sc_current_single_cell, i_eff
+        )
+        leakage = (sc_current_single_cell) / (
             math.exp(
-                q * (voltage / n_series) / (ideality * k * temperature_kelvin)
+                q
+                * (oc_voltage_single_cell)
+                / (ideality * k * temperature_kelvin)
             )
         )
-        light_current = cls.light_generated_current(cls, sc_current, i_eff)
         return light_current - leakage * (
             math.exp(q * voltage / ideality * k * temperature) - 1
         )
