@@ -23,8 +23,9 @@ class PowerProcessor:
         # This method of maximization was found in the source
         # code for the paper
         N_SAMPLES = 20
-        voltage = np.linspace(0, sc_voltage, N_SAMPLES)
-        return n_parallel * n_series * np.amax(i_out * voltage)
+        voltage_vec = np.linspace(0, sc_voltage, N_SAMPLES)
+        # FIXME i_out nees to be a vector
+        return n_parallel * n_series * np.amax(i_out * voltage_vec)
 
     def estimated_power(cls, n_parallel, n_series, i_out, voltage, efficiency):
         """Returns the estimated processed power output the grid.
