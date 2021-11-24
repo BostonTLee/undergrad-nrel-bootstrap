@@ -14,3 +14,19 @@
     - Boston: Use the API or website to get a more-or-less complete
     data set; if that gets done, do a Kernel Density Estimate
 - NREL API: https://nsrdb.nrel.gov/data-sets/api-instructions.html#Take-a-Look-at-the-Results
+
+## 11/23/2021
+
+- New paper similar to previous one but more simplified and with more detailed method descriptions
+    - Astronomical model for converting solar irradiance to effective irradiance
+    - PV module for converting effective irradiance into current output
+    - Power processor for converting current output into system power
+    - Markov chain model for estimating state transition probabilities
+    - Clustering for day/night states
+- Python classes should be written for the first three sections
+    - Boston already drafted astronomical model class
+    - Adam to test Boston's class and develop second two classes
+    - Boston to search for python implementation of Markov model
+    - Evan to research state transitions and clustering
+- Use black python package to format documents and include docstrings
+- Meet tomorrow to discuss progress and figure out what is needed for next week
