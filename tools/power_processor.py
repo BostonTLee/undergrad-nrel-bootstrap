@@ -6,7 +6,7 @@ class PowerProcessor:
     """Provides an interface for power processing calculation."""
 
     def ideal_power(cls, n_parallel, n_series, i_out, voltage):
-        """Returns the ideal maximum power output from a photovoltaic module.
+        """Returns the ideal maximum power output from the grid.
 
         # FIXME
         Power is maximized over ... values of voltage.
@@ -19,13 +19,13 @@ class PowerProcessor:
             voltage (float):
 
         Returns:
-            float: Returns the ideal maximum power output from a photovoltaic module
+            float: Returns the ideal maximum power output from the grid
 
         """
         return n_parallel * n_series * np.max(i_out * voltage)
 
     def estimated_power(cls, n_parallel, n_series, i_out, voltage, efficiency):
-        """Returns the estimated processed power output from a photovoltaic module.
+        """Returns the estimated processed power output the grid.
 
         The value of `i_out` is determined using the PVModule class.
 
@@ -38,7 +38,7 @@ class PowerProcessor:
             efficiency (float): The conversion efficiency of the power processor used
 
         Returns:
-            float: Returns the estimated processed power output from a photovoltaic module
+            float: Returns the estimated processed power output from the grid
 
         """
         max_power = cls.ideal_power(cls, n_parallel, n_series, i_out, voltage)
