@@ -30,3 +30,15 @@
     - Evan to research state transitions and clustering
 - Use black python package to format documents and include docstrings
 - Meet tomorrow to discuss progress and figure out what is needed for next week
+
+## 11/24/2021
+
+- Objectives:
+    - Evan: Explore clustering and plotting clustering
+    - Adam: Read about Python implementations of Markov models
+    - Boston: Finish the output current caculation, including adding
+    a column to the data
+- We discovered how to calculate the maximum power
+- We realized that the `i_out` variable needs the voltage that maximizes
+the power, meaning we should not get maximum power, but rather the `i_out`
+resulting from maximum power.
