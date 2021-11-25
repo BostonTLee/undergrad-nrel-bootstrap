@@ -21,6 +21,7 @@ class AstronomicalAdjustment:
     BETA = math.radians(45)
     ALPHA = math.radians(30)
 
+    @classmethod
     def d_helper(cls, day_number):
         """Return the value of an internal helper function.
 
@@ -37,6 +38,7 @@ class AstronomicalAdjustment:
         d_rad = math.radians(d_deg)
         return d_rad
 
+    @classmethod
     def declination_angle(cls, day_number):
         """Return the declination angle for a given day.
 
@@ -51,9 +53,10 @@ class AstronomicalAdjustment:
 
         """
         EARTH_ANGLE = math.radians(23.45)
-        D = cls.d_helper(cls, day_number)
+        D = cls.d_helper(day_number)
         return np.arcsin(math.sin(EARTH_ANGLE) * math.sin(D))
 
+    @classmethod
     def hour_angle(cls, time, day_number, longitude, utc_off):
         """Return the hour angle for a given day and time.
 
@@ -68,10 +71,11 @@ class AstronomicalAdjustment:
 
         """
         hour_angle_degrees = (
-            15 * cls.apparent_solar_time(cls, time, day_number, longitude, utc_off) - 12
+            15 * cls.apparent_solar_time(time, day_number, longitude, utc_off) - 12
         )
         return math.radians(hour_angle_degrees)
 
+    @classmethod
     def apparent_solar_time(cls, time, day_number, longitude, utc_off):
         """Return the apparent solar time (AST) for a given time and location.
 
@@ -92,8 +96,9 @@ class AstronomicalAdjustment:
         gma = utc_off * 15
         time_displacement = (longitude - gma) / 15
         # FIXME adjust for daylight savings?
-        return time + time_displacement + cls.equation_of_time(cls, day_number)
+        return time + time_displacement + cls.equation_of_time(day_number)
 
+    @classmethod
     def equation_of_time(cls, day_number):
         """Return the equation of time for a given day.
 
@@ -107,9 +112,10 @@ class AstronomicalAdjustment:
             float: Returns the value of the equation of time of a given day number
 
         """
-        D = cls.d_helper(cls, day_number)
+        D = cls.d_helper(day_number)
         return (9.87 * math.sin(2 * D) - 7.53 * math.cos(D) - 1.5 * math.sin(D)) / 60
 
+    @classmethod
     def angle_sun_surface(cls, time, day_number, latitude, longitude, utc_off):
         """Return the cosine of the angle between the sun and the panel surface.
 
@@ -129,8 +135,8 @@ class AstronomicalAdjustment:
         """
         ALPHA = cls.ALPHA
         BETA = cls.BETA
-        declination_angle = cls.declination_angle(cls, day_number)
-        hour_angle = cls.hour_angle(cls, time, day_number, longitude, utc_off)
+        declination_angle = cls.declination_angle(day_number)
+        hour_angle = cls.hour_angle(time, day_number, longitude, utc_off)
         latitude = np.radians(latitude)
         ret_val = (
             (math.sin(declination_angle) * math.sin(latitude) * math.cos(BETA))
@@ -162,6 +168,7 @@ class AstronomicalAdjustment:
         )
         return ret_val
 
+    @classmethod
     def construct_time(cls, hour, minute):
         """Return the 24-hour time.
 
@@ -177,6 +184,7 @@ class AstronomicalAdjustment:
         """
         return hour + minute / 60
 
+    @classmethod
     def construct_day(cls, month, day):
         """Return the day of the year.
 
@@ -194,6 +202,7 @@ class AstronomicalAdjustment:
         cumulative_days = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
         return sum(cumulative_days[0 : int(month - 1)]) + day
 
+    @classmethod
     def effective_solar_radiance(
         cls, i_sun, month, day, hour, minute, latitude, longitude, utc_off
     ):
@@ -216,10 +225,10 @@ class AstronomicalAdjustment:
 
         """
 
-        time = cls.construct_time(cls, hour, minute)
-        day_number = cls.construct_day(cls, month, day)
+        time = cls.construct_time(hour, minute)
+        day_number = cls.construct_day(month, day)
 
         return i_sun * max(
             0,
-            cls.angle_sun_surface(cls, time, day_number, latitude, longitude, utc_off),
+            cls.angle_sun_surface(time, day_number, latitude, longitude, utc_off),
         )
