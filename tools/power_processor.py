@@ -1,11 +1,24 @@
 """Provides a class encapsulating power processing calculations."""
 import numpy as np
 
+from astronomical_adjustment import AstronomicalAdjustment as aa
+from pv_module import PVModule as pvm
+
 
 class PowerProcessor:
     """Provides an interface for power processing calculation."""
 
-    def ideal_power(cls, n_parallel, n_series, i_out, sc_voltage):
+    @classmethod
+    def ideal_power(
+        cls,
+        ideality,
+        temperature,
+        sc_current_module,
+        i_eff,
+        n_parallel,
+        n_series,
+        oc_voltage,
+    ):
         """Returns the ideal maximum power output from the grid.
 
         Power is maximized over 20 values of voltage,
@@ -23,11 +36,43 @@ class PowerProcessor:
         # This method of maximization was found in the source
         # code for the paper
         N_SAMPLES = 20
-        voltage_vec = np.linspace(0, sc_voltage, N_SAMPLES)
-        # FIXME i_out nees to be a vector
-        return n_parallel * n_series * np.amax(i_out * voltage_vec)
+        voltage_vec = np.linspace(0, oc_voltage, N_SAMPLES)
 
-    def estimated_power(cls, n_parallel, n_series, i_out, voltage, efficiency):
+        # Nested function so we can easily create a vectorized function
+        def get_current_output(voltage):
+            return pvm.current_output(
+                voltage,
+                ideality,
+                temperature,
+                sc_current_module,
+                oc_voltage,
+                i_eff,
+                n_parallel,
+                n_series,
+            )
+
+        vectorized_get_current_output = np.vectorize(get_current_output)
+        current_vec = vectorized_get_current_output(voltage_vec)
+        vec_to_be_maximized = (
+            n_parallel * n_series * np.multiply(current_vec, voltage_vec)
+        )
+        max_index = np.argmax(vec_to_be_maximized)
+        # Return the *current* corresponding to the max power
+        return current_vec.item(max_index)
+
+    @classmethod
+    def estimated_power(
+        cls,
+        ideality,
+        temperature,
+        sc_current_module,
+        i_eff,
+        n_parallel,
+        n_series,
+        oc_voltage,
+        efficiency,
+    ):
+
         """Returns the estimated processed power output the grid.
 
         The value of `i_out` is determined using the PVModule class.
@@ -44,5 +89,13 @@ class PowerProcessor:
             float: Returns the estimated processed power output from the grid
 
         """
-        max_power = cls.ideal_power(cls, n_parallel, n_series, i_out, voltage)
+        max_power = cls.ideal_power(
+            ideality,
+            temperature,
+            sc_current_module,
+            i_eff,
+            n_parallel,
+            n_series,
+            oc_voltage,
+        )
         return efficiency * max_power
