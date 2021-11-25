@@ -223,31 +223,3 @@ class AstronomicalAdjustment:
             0,
             cls.angle_sun_surface(cls, time, day_number, latitude, longitude, utc_off),
         )
-
-
-if __name__ == "__main__":
-    data = pd.read_csv("./data/irradiance_full.csv")
-
-    lat = 34.05
-    long = 28.24
-    utc = -8
-
-    results = []
-    for index, row in data.iterrows():
-        results.append(
-            AstronomicalAdjustment.effective_solar_radiance(
-                AstronomicalAdjustment,
-                row["DHI"],
-                row["Month"],
-                row["Day"],
-                row["Hour"],
-                row["Minute"],
-                lat,
-                long,
-                utc,
-            )
-        )
-
-    print(np.mean(results))
-    plot = plt.hist(results, bins=20)
-    plt.show()
