@@ -27,7 +27,7 @@ class PVModule:
             float: Returns the radiation rate constant
 
         """
-        return 0.0001 * i_eff
+        return 0.001 * i_eff
 
     @classmethod
     def light_generated_current(cls, sc_current, i_eff):
