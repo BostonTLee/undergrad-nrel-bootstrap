@@ -42,3 +42,16 @@
 - We realized that the `i_out` variable needs the voltage that maximizes
 the power, meaning we should not get maximum power, but rather the `i_out`
 resulting from maximum power.
+
+## 12/1/2021
+- Discussion of bootstrapping methods for current output data
+    - Time series bootstrap over 24 hours or over only daylight hours
+- Discussion of reproducibility and conversion from Python to R
+    - Functions written in Python read and process data
+    - RMarkdown file (final paper) will read in data and produce plots and tables with ggplot, etc.
+    - Plots and tables will be exported to local directory for upload into separate RMarkdown (pres)
+- Objectives:
+    - Evan: Perform bootstrapping on current output data and generate plots on interest
+    - Boston: Push templates for paper and presentation RMarkdowns and begin writing 
+    - Adam: Begin filling out skeleton for presentation and begin writing paper
+- These tasks should be mostly finished by the end of the week and then we can all begin focusing on the paper and presentation.
