@@ -1,0 +1,14 @@
+---
+title: "Time Series Bootstrapping For Solar Current"
+author: "Evan Kessler, Adam Kiehl, and Boston Lee"
+date: "2021/12/16"
+output: pdf_document
+---
+
+```{r reprod}
+set.seed(400)
+```
+
+```{r libs}
+library(tidyverse)
+```

@@ -1,0 +1,9 @@
+---
+title: "Time Series Bootstrapping For Solar Current"
+author: "Evan Kessler, Adam Kiehl, and Boston Lee"
+date: "2021/12/9"
+output: 
+  beamer_presentation: default
+---
+
+# Background
