@@ -4,7 +4,11 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.neighbors import KernelDensity
 
-SOLAR_IRRADIANCE = "GHI"
+from astronomical_adjustment import AstronomicalAdjustment as aa
+from power_processor import PowerProcessor as pp
+from pv_module import PVModule as pvm
+
+SOLAR_IRRADIANCE = "irradiance_eff"
 
 
 def filter_data(df, thresh=1 / 50):
@@ -45,10 +49,46 @@ def time_of_day_plot(df):
 
 def main():
     df = pd.read_csv("../data/irradiance_full.csv")
+    df = df.loc[df["Month"] == 2,:]
+    # kde = kernel_density_from_df(df)
+    # hist_from_df_and_kde(df, kde)
+    # time_of_day_plot(df)
+
+    lat = 34.05
+    lon = 28.24
+    utc = -8
+
+    df["irradiance_eff"] = df.apply(
+        lambda row: aa.effective_solar_radiance(
+            row["DHI"],
+            row["Month"],
+            row["Day"],
+            row["Hour"],
+            row["Minute"],
+            lat,
+            lon,
+            utc,
+        ),
+        axis=1,
+    )
     df = filter_data(df)
-    kde = kernel_density_from_df(df)
-    hist_from_df_and_kde(df, kde)
-    time_of_day_plot(df)
+
+    df["current_out"] = df.apply(
+        lambda row: pp.estimated_power(
+            ideality=1.5,
+            temperature=row["Temperature"],
+            sc_current_module=5,
+            i_eff=row["irradiance_eff"],
+            n_parallel=6,
+            n_series=6,
+            oc_voltage=1.8,
+            efficiency=0.211,
+        ),
+        axis=1
+    )
+    print(df)
+    plot = plt.hist(df["current_out"], bins=50)
+    plt.show()
 
 
 if __name__ == "__main__":
