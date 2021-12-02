@@ -100,7 +100,7 @@ def main():
     # LA coordinates
     lat, lon = 34.0522, -118.2437
     data = pull_nrel_data_multiple_years(lat, lon, "config.toml")
-    data.to_csv("../data/irradiance_full.csv", index=False)
+    data.to_csv("../data/raw/irradiance_full_raw.csv", index=False)
 
 
 if __name__ == "__main__":
