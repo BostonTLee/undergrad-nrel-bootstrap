@@ -12,3 +12,50 @@ set.seed(400)
 ```{r libs}
 library(tidyverse)
 ```
+
+
+```{r functions}
+np <- function(x, l, b) {
+  blocks <- matrix(NA, nrow = b, ncol = l)
+  for(i in 1:length(x)) {
+    blocks[i,] <- x[(i-1)*l+1:(i*l)]
+  }
+  blocks
+}
+
+nbb <- function(x, l) {
+  B <- 10000
+  b <- floor(length(x)/l)
+  theta_hat_star_nbb <- rep(NA, B)
+  nb_blocks <- np(x, l, b)
+  for(i in 1:B) {
+    # sample blocks
+    idx <- sample(1:b, b, replace = TRUE)
+    theta_hat_star_nbb[i] <- mean(x[idx, ])
+  }
+  ggplot() +
+    geom_histogram(aes(theta_hat_star_nbb))
+  
+  st.d <- sd(theta_hat_star_nbb)
+  bias <- mean(theta_hat_star_nbb) - mean(x)
+  
+  print(paste("The standard deviation with ", l, " blocks is: ", st.d, ". \n The bias is: ",
+              bias))
+}
+
+```
+
+```{r sampling}
+#B1 <- df[df$Hour == c(7:10),]$current_output # Hours before peak
+#B2 <- df[df$Hour == c(11:14),]$current_output # Peak hours
+#B3 <- df[df$Hour == c(15:18),]$current_output # Hours after peak
+
+hours <- df[df$Hour == c(7:18),]$current_output
+nbb(hours, 4) # in order to make b blocks I would need to solve for b = [n/l] (floor) where n is the length of our data and l is 4, so make nbb call l instead of b
+
+nbb(hours, 12)
+
+# Could also block instead by hours but by total current output. Peak hours would be a frame around the highest output and then hours before and after would coincide with that. This would cause the hours to potentially be different based on the season/month as months that get dark earlier could see peak hours earlier in the day.
+
+#dpeak <- c(B1,B2,B3)
+```
