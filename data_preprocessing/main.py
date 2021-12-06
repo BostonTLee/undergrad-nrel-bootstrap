@@ -20,7 +20,7 @@ def main():
 
     df[SOLAR_IRRADIANCE] = df.apply(
         lambda row: aa.effective_solar_radiance(
-            row["DHI"],
+            row["GHI"],
             row["Month"],
             row["Day"],
             row["Hour"],
