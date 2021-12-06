@@ -13,49 +13,123 @@ set.seed(400)
 library(tidyverse)
 ```
 
+```{r data}
+df <- read_csv("../data/final/irradiance_full_final.csv")
+```
+
+# EDA
+
+```{r timeseries}
+
+#' Plot a timeseries of a single variable
+#'
+#' @param df A dataframe containing `variable`
+#' @param variable A string referring to a column of `df`
+#' @param n_days The number of days (starting from the
+#'    beginning of the data) to plot
+#' @return A ggplot object of a timeseries of `variable` for `n_days` days
+time_series_of_var <- function(df, variable, n_days) {
+ret_plot <- df %>%
+  mutate(date = lubridate::make_datetime(Year, Month, Day, Hour, Minute)) %>%
+  head(24 * n_days) %>%
+  ggplot() +
+  geom_line(aes_string(x = "date", y = variable)) +
+  theme_bw()
+return(ret_plot)
+}
+
+time_series_of_var(df, "GHI", 6)
+time_series_of_var(df, "current_out", 6)
+```
+
+```{r hour-plot}
+
+#' Plot the values of `variable` at each hour of the day
+#'
+#' @param df A dataframe containing `variable`
+#' @param variable A string referring to a column of `df`
+#' @return A ggplot object of a boxplot of `variable` segmented by hour
+hour_plot_of_var <- function(df, variable) {
+df$Hour <- as.factor(df$Hour)
+ret_plot <- df %>%
+  ggplot() +
+  geom_boxplot(aes_string(x = "Hour", y = variable)) +
+  xlab("Hour (0-23)") +
+  ylab(paste("Distribution of", variable)) +
+  theme_bw()
+return(ret_plot)
+}
+
+hour_plot_of_var(df, "GHI")
+hour_plot_of_var(df, "current_out")
+```
+
+
+# Data filtering
+
+```{r filter}
+HOUR_WINDOW <- 11:16
+df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW,]
+filtered_current_hist <- ggplot() +
+  geom_histogram(aes(x = df_high_irradiance$current_out)) +
+  theme_bw()
+print(filtered_current_hist)
+```
+
+# Bootstrapping
 
 ```{r functions}
-np <- function(x, l, b) {
+
+np <- function(x, l) {
+  n <- length(x)
+  print(n)
+  # l <- n %/% b
+  # b <- n %/% l
+  b <- floor(n / l)
+  print(b)
+  print(n / b)
   blocks <- matrix(NA, nrow = b, ncol = l)
-  for(i in 1:length(x)) {
-    blocks[i,] <- x[(i-1)*l+1:(i*l)]
+  for (i in 1:b) {
+    # blocks[i, ] <- x[(i - 1) * l + 1:(i * l)]
+    print(x[(i - 1) * l + 1:(i * l)])
   }
-  blocks
+  return(blocks)
 }
 
 nbb <- function(x, l) {
   B <- 10000
-  b <- floor(length(x)/l)
+  b <- floor(length(x) / l)
   theta_hat_star_nbb <- rep(NA, B)
-  nb_blocks <- np(x, l, b)
-  for(i in 1:B) {
+  # nb_blocks <- np(x, l, b)
+  nb_blocks <- np(x, l)
+  for (i in 1:B) {
     # sample blocks
     idx <- sample(1:b, b, replace = TRUE)
     theta_hat_star_nbb[i] <- mean(x[idx, ])
   }
   ggplot() +
     geom_histogram(aes(theta_hat_star_nbb))
-  
+
   st.d <- sd(theta_hat_star_nbb)
   bias <- mean(theta_hat_star_nbb) - mean(x)
-  
-  print(paste("The standard deviation with ", l, " blocks is: ", st.d, ". \n The bias is: ",
-              bias))
-}
 
+  print(paste(
+    "The standard deviation with ", l, " blocks is: ", st.d, ". \n The bias is: ",
+    bias
+  ))
+}
 ```
 
 ```{r sampling}
-#B1 <- df[df$Hour == c(7:10),]$current_output # Hours before peak
-#B2 <- df[df$Hour == c(11:14),]$current_output # Peak hours
-#B3 <- df[df$Hour == c(15:18),]$current_output # Hours after peak
+# B1 <- df[df$Hour == c(7:10),]$current_output # Hours before peak
+# B2 <- df[df$Hour == c(11:14),]$current_output # Peak hours
+# B3 <- df[df$Hour == c(15:18),]$current_output # Hours after peak
 
-hours <- df[df$Hour == c(7:18),]$current_output
 nbb(hours, 4) # in order to make b blocks I would need to solve for b = [n/l] (floor) where n is the length of our data and l is 4, so make nbb call l instead of b
 
 nbb(hours, 12)
 
 # Could also block instead by hours but by total current output. Peak hours would be a frame around the highest output and then hours before and after would coincide with that. This would cause the hours to potentially be different based on the season/month as months that get dark earlier could see peak hours earlier in the day.
 
-#dpeak <- c(B1,B2,B3)
+# dpeak <- c(B1,B2,B3)
 ```
