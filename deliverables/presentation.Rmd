@@ -2,8 +2,9 @@
 title: "Time Series Bootstrapping For Solar Current"
 author: "Evan Kessler, Adam Kiehl, and Boston Lee"
 date: "2021/12/9"
-output: 
+output:
   beamer_presentation: default
+bibliography: references.bib
 ---
 
 # Research Question
@@ -11,33 +12,36 @@ output:
 - SolarStat: Modeling Photovolatic Sources through Stochastic Markov Processes
     - Marco Miozzo, Davide Zordan, Paolo Dini, and Michele Rossi
 - Their objective: Describe how solar irradiance is translated into current output in a PV system throughout the day and cluster results with a Markov model to determine day/night breaks.
-- Our objective: Describe how solar irradiance is translated into current output in a PV system and bootsrap results both with and without respect to time, and compare. 
+- Our objective: Describe how solar irradiance is translated into current output in a PV system and bootsrap results both with and without respect to time, and compare.
+
+# Motivation
+
+- Understanding renewable energy sources like solar power is critical to the next century.
+- PV modules installed at individual households/nodes reduce the overall load on the electrical grid.
+- Balancing the expected contribution of an individual PV module with the expected residual demand required of the grid is a large optimization problem.
+    - We dealt with half of that optimization problem involving the expected contribution of the PV module.
 
 # Background
 
-- Understanding renewable energy sources like solar power is critical to the next century. 
-- PV modules installed at individual households/nodes reduce the overall load on the electrical grid. 
-- Balancing the expected contribution of an individual PV module with the expected residual demand required of the grid is a large optimization problem. 
-    - We dealt with half of that optimization problem involving the expected contribution of the PV module. 
 
 # Data
 
 - National Solar Radiation Database (NSRD) from National Renewable Energy Laboratory (NREL) accessed through API
-- Los Angeles data (1998-2010) was used to replicate the source paper. (IS THE YEAR RANGE RIGHT BOSTON?)
+- Los Angeles data (1998-2010) was used to replicate the source paper.
     - Date and time, direct normal irradiance (DNI), and temperature data used.
 
 # Preprocessing
 
 INSERT FIG 1 FROM PAPER HERE
 - Astronomical adjustments performed on DNI to find effective solar irradiance:
-    - Latitude, longitude, time zone, and the tilt of the earth used in calculations. 
+    - Latitude, longitude, time zone, and the tilt of the earth used in calculations.
     - $I_{eff} \propto I_{sun}cos(\theta)$
 
 # Photovolatic (PV) Module
 
 - Power processing units are attached to PV modules to optimize power output for a given current input.
-    - Maximizes power $P=IV$ over a range of possible voltages. 
-- Result of interest is current output after being adjusted by the power processor and an assumed leakage rate.  
+    - Maximizes power $P=IV$ over a range of possible voltages.
+- Result of interest is current output after being adjusted by the power processor and an assumed leakage rate.
 
 # Bootstrapping
 
@@ -50,5 +54,5 @@ INSERT FIG 1 FROM PAPER HERE
 # Future Research
 
 - A similar procedure could be performed on a different city's data like Fort Collins.
-- A similar procedure could be performed over a different range of years. A comparison may reveal the effects of global warming. 
-- Our original source paper examined multiple PV modules simultaneously in the context of a larger grid. This examines both sides of the contribution/demand optimization problem. 
+- A similar procedure could be performed over a different range of years. A comparison may reveal the effects of global warming.
+- Our original source paper examined multiple PV modules simultaneously in the context of a larger grid. This examines both sides of the contribution/demand optimization problem.
