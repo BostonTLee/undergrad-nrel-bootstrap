@@ -29,13 +29,13 @@ df <- read_csv("../data/final/irradiance_full_final.csv")
 #'    beginning of the data) to plot
 #' @return A ggplot object of a timeseries of `variable` for `n_days` days
 time_series_of_var <- function(df, variable, n_days) {
-ret_plot <- df %>%
-  mutate(date = lubridate::make_datetime(Year, Month, Day, Hour, Minute)) %>%
-  head(24 * n_days) %>%
-  ggplot() +
-  geom_line(aes_string(x = "date", y = variable)) +
-  theme_bw()
-return(ret_plot)
+  ret_plot <- df %>%
+    mutate(date = lubridate::make_datetime(Year, Month, Day, Hour, Minute)) %>%
+    head(24 * n_days) %>%
+    ggplot() +
+    geom_line(aes_string(x = "date", y = variable)) +
+    theme_bw()
+  return(ret_plot)
 }
 
 time_series_of_var(df, "GHI", 6)
@@ -50,14 +50,14 @@ time_series_of_var(df, "current_out", 6)
 #' @param variable A string referring to a column of `df`
 #' @return A ggplot object of a boxplot of `variable` segmented by hour
 hour_plot_of_var <- function(df, variable) {
-df$Hour <- as.factor(df$Hour)
-ret_plot <- df %>%
-  ggplot() +
-  geom_boxplot(aes_string(x = "Hour", y = variable)) +
-  xlab("Hour (0-23)") +
-  ylab(paste("Distribution of", variable)) +
-  theme_bw()
-return(ret_plot)
+  df$Hour <- as.factor(df$Hour)
+  ret_plot <- df %>%
+    ggplot() +
+    geom_boxplot(aes_string(x = "Hour", y = variable)) +
+    xlab("Hour (0-23)") +
+    ylab(paste("Distribution of", variable)) +
+    theme_bw()
+  return(ret_plot)
 }
 
 hour_plot_of_var(df, "GHI")
@@ -69,7 +69,7 @@ hour_plot_of_var(df, "current_out")
 
 ```{r filter}
 HOUR_WINDOW <- 11:16
-df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW,]
+df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
 filtered_current_hist <- ggplot() +
   geom_histogram(aes(x = df_high_irradiance$current_out)) +
   theme_bw()
@@ -79,6 +79,31 @@ print(filtered_current_hist)
 # Bootstrapping
 
 ```{r functions}
+
+#' Given a dataframe, return a matrix of bootstrap blocks
+#'
+#' @param df A dataframe of irradiance values
+#' @return A matrix whose rows are bootstrap blocks
+make_blocks_from_df <- function(df) {
+  df <- df %>%
+    mutate(date = lubridate::make_date(Year, Month, Day))
+  # The number of blocks is the number of days
+  number_of_blocks <- length(unique(df$date))
+  # The length of a block is the number of
+  # observations in each individual day.
+  # In this case, we can simply look at the first one,
+  # because all of the days have the same number of observations
+  length_of_block <- nrow(df[df$date == unique(df$date)[1], ])
+  blocks <- matrix(NA, nrow = number_of_blocks, ncol = length_of_block)
+  print(dim(blocks))
+  for (i in 1:number_of_blocks) {
+    blocks[i, ] <- df$current_out[(i - 1) * length_of_block + 1 : (i * length_of_block)]
+  }
+  return(blocks)
+}
+# We have to use the modified DataFrame here,
+# or else the assumptions about block size don't hold
+make_blocks_from_df(df_high_irradiance)
 
 np <- function(x, l) {
   n <- length(x)
