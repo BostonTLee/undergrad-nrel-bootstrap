@@ -62,9 +62,6 @@ hour_plot_of_var <- function(df, variable) {
 
 hour_plot_of_var(df, "GHI")
 hour_plot_of_var(df, "current_out")
-hour_plot_of_var(df, "declination_angle")
-hour_plot_of_var(df, "solar_time")
-hour_plot_of_var(df, "angle_sun_surface_degrees")
 ```
 
 
@@ -121,11 +118,35 @@ block_bootstrap_estimates_from_df <- function(df, B=10000) {
     idx <- sample(1:number_of_blocks, number_of_blocks, replace = TRUE)
     # Concatenate blocks at the given indices
     # This gives a "pseudo-dataset" containing resampled blocks
-    block_bootstrap_estimates[i] <- mean(as.vector(t(blocks[idx, ])))
+    block_bootstrap_estimates[i] <- median(as.vector(t(blocks[idx, ])))
   }
   return(block_bootstrap_estimates)
 }
 test_est <- block_bootstrap_estimates_from_df(df_high_irradiance)
+
+meanv <- function(data, idx) {
+  return(mean(data[idx]))
+}
+
+sdv <- function(data, idx) {
+  return(sd(data[idx]))
+}
+
+medianv <- function(data, idx) {
+  return(median(data[idx]))
+}
+
+iid_bootstrap_estimates_from_df <- function(df, B=10000) {
+  boot_current <- boot(df$current_out, medianv, B)
+  return(boot_current$t)
+}
+
+test_iid <- iid_bootstrap_estimates_from_df(df_high_irradiance)
+
+ggplot() +
+  geom_histogram(aes(x = test_est),color="red",alpha=0.5) +
+  geom_histogram(aes(x = test_iid),color="blue",alpha=0.5) +
+  theme_bw()
 
 
 
