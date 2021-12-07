@@ -62,6 +62,9 @@ hour_plot_of_var <- function(df, variable) {
 
 hour_plot_of_var(df, "GHI")
 hour_plot_of_var(df, "current_out")
+hour_plot_of_var(df, "declination_angle")
+hour_plot_of_var(df, "solar_time")
+hour_plot_of_var(df, "angle_sun_surface_degrees")
 ```
 
 
@@ -95,15 +98,36 @@ make_blocks_from_df <- function(df) {
   # because all of the days have the same number of observations
   length_of_block <- nrow(df[df$date == unique(df$date)[1], ])
   blocks <- matrix(NA, nrow = number_of_blocks, ncol = length_of_block)
-  print(dim(blocks))
+  start <- 1
+  stop <- length_of_block
   for (i in 1:number_of_blocks) {
-    blocks[i, ] <- df$current_out[(i - 1) * length_of_block + 1 : (i * length_of_block)]
+    # blocks[i, ] <- df$current_out[(i - 1) * length_of_block + 1 : (i * length_of_block)]
+    blocks[i, ] <- df$current_out[start:stop]
+    start <- start + length_of_block
+    stop <- stop + length_of_block
   }
   return(blocks)
 }
 # We have to use the modified DataFrame here,
 # or else the assumptions about block size don't hold
-make_blocks_from_df(df_high_irradiance)
+test <- make_blocks_from_df(df_high_irradiance)
+
+block_bootstrap_estimates_from_df <- function(df, B=10000) {
+  block_bootstrap_estimates <- rep(NA, B)
+  blocks <- make_blocks_from_df(df)
+  number_of_blocks <- nrow(blocks)
+  for (i in 1:B) {
+    # sample blocks
+    idx <- sample(1:number_of_blocks, number_of_blocks, replace = TRUE)
+    # Concatenate blocks at the given indices
+    # This gives a "pseudo-dataset" containing resampled blocks
+    block_bootstrap_estimates[i] <- mean(as.vector(t(blocks[idx, ])))
+  }
+  return(block_bootstrap_estimates)
+}
+test_est <- block_bootstrap_estimates_from_df(df_high_irradiance)
+
+
 
 np <- function(x, l) {
   n <- length(x)
@@ -120,6 +144,7 @@ np <- function(x, l) {
   }
   return(blocks)
 }
+
 
 nbb <- function(x, l) {
   B <- 10000
