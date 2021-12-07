@@ -69,9 +69,8 @@ class AstronomicalAdjustment:
             float: Returns the hour angle in radians
 
         """
-        hour_angle_degrees = (
-            15 * cls.apparent_solar_time(time, day_number, longitude, utc_off)
-            - 12
+        hour_angle_degrees = 15 * (
+            cls.apparent_solar_time(time, day_number, longitude, utc_off) - 12
         )
         return math.radians(hour_angle_degrees)
 
@@ -114,7 +113,7 @@ class AstronomicalAdjustment:
         """
         D = cls.d_helper(day_number)
         return (
-            9.87 * math.cos(2 * D) - 7.53 * math.cos(D) - 1.5 * math.sin(D)
+            9.87 * math.sin(2 * D) - 7.53 * math.cos(D) - 1.5 * math.sin(D)
         ) / 60
 
     @classmethod
