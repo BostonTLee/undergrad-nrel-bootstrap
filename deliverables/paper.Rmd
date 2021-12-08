@@ -11,6 +11,7 @@ set.seed(400)
 
 ```{r libs}
 library(tidyverse)
+library(boot)
 ```
 
 ```{r data}
@@ -109,7 +110,7 @@ make_blocks_from_df <- function(df) {
 # or else the assumptions about block size don't hold
 test <- make_blocks_from_df(df_high_irradiance)
 
-block_bootstrap_estimates_from_df <- function(df, B=10000) {
+block_bootstrap_estimates_from_df <- function(df, B = 10000) {
   block_bootstrap_estimates <- rep(NA, B)
   blocks <- make_blocks_from_df(df)
   number_of_blocks <- nrow(blocks)
@@ -118,7 +119,7 @@ block_bootstrap_estimates_from_df <- function(df, B=10000) {
     idx <- sample(1:number_of_blocks, number_of_blocks, replace = TRUE)
     # Concatenate blocks at the given indices
     # This gives a "pseudo-dataset" containing resampled blocks
-    block_bootstrap_estimates[i] <- median(as.vector(t(blocks[idx, ])))
+    block_bootstrap_estimates[i] <- mean(as.vector(t(blocks[idx, ])))
   }
   return(block_bootstrap_estimates)
 }
@@ -136,59 +137,18 @@ medianv <- function(data, idx) {
   return(median(data[idx]))
 }
 
-iid_bootstrap_estimates_from_df <- function(df, B=10000) {
-  boot_current <- boot(df$current_out, medianv, B)
+iid_bootstrap_estimates_from_df <- function(df, B = 10000) {
+  boot_current <- boot(df$current_out, meanv, B)
   return(boot_current$t)
 }
 
 test_iid <- iid_bootstrap_estimates_from_df(df_high_irradiance)
 
-ggplot() +
-  geom_histogram(aes(x = test_est),color="red",alpha=0.5) +
-  geom_histogram(aes(x = test_iid),color="blue",alpha=0.5) +
+mean_samp_dist <- ggplot() +
+  geom_histogram(aes(x = test_est), color = "red", alpha = 0.5) +
+  geom_histogram(aes(x = test_iid), color = "blue", alpha = 0.5) +
   theme_bw()
-
-
-
-np <- function(x, l) {
-  n <- length(x)
-  print(n)
-  # l <- n %/% b
-  # b <- n %/% l
-  b <- floor(n / l)
-  print(b)
-  print(n / b)
-  blocks <- matrix(NA, nrow = b, ncol = l)
-  for (i in 1:b) {
-    # blocks[i, ] <- x[(i - 1) * l + 1:(i * l)]
-    print(x[(i - 1) * l + 1:(i * l)])
-  }
-  return(blocks)
-}
-
-
-nbb <- function(x, l) {
-  B <- 10000
-  b <- floor(length(x) / l)
-  theta_hat_star_nbb <- rep(NA, B)
-  # nb_blocks <- np(x, l, b)
-  nb_blocks <- np(x, l)
-  for (i in 1:B) {
-    # sample blocks
-    idx <- sample(1:b, b, replace = TRUE)
-    theta_hat_star_nbb[i] <- mean(x[idx, ])
-  }
-  ggplot() +
-    geom_histogram(aes(theta_hat_star_nbb))
-
-  st.d <- sd(theta_hat_star_nbb)
-  bias <- mean(theta_hat_star_nbb) - mean(x)
-
-  print(paste(
-    "The standard deviation with ", l, " blocks is: ", st.d, ". \n The bias is: ",
-    bias
-  ))
-}
+ggsave("./images/mean_samp_dist.png", mean_samp_dist)
 ```
 
 ```{r sampling}
@@ -196,11 +156,15 @@ nbb <- function(x, l) {
 # B2 <- df[df$Hour == c(11:14),]$current_output # Peak hours
 # B3 <- df[df$Hour == c(15:18),]$current_output # Hours after peak
 
-nbb(hours, 4) # in order to make b blocks I would need to solve for b = [n/l] (floor) where n is the length of our data and l is 4, so make nbb call l instead of b
+# nbb(hours, 4) # in order to make b blocks I would need to solve for b = [n/l] (floor) where n is the length of our data and l is 4, so make nbb call l instead of ib
 
-nbb(hours, 12)
+# nbb(hours, 12)
 
-# Could also block instead by hours but by total current output. Peak hours would be a frame around the highest output and then hours before and after would coincide with that. This would cause the hours to potentially be different based on the season/month as months that get dark earlier could see peak hours earlier in the day.
+# Could also block instead by hours but by total current output. Peak hours
+# would be a frame around the highest output and then hours before and after
+# would coincide with that. This would cause the hours to potentially be
+# different based on the season/month as months that get dark earlier could see
+# peak hours earlier in the day.
 
 # dpeak <- c(B1,B2,B3)
 ```
