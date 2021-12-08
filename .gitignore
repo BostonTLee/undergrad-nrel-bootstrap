@@ -47,3 +47,10 @@ data_scraping/config.toml
 # Prevent CSVs outside intended directory (prompted by mistake)
 *.csv
 !data/*.csv
+
+# Rmd output
+
+deliverables/*.pdf
+deliverables/*.log
+deliverables/*.tex
+deliverables/images/*.png
