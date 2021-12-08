@@ -7,6 +7,7 @@
 
 # User-specific files
 .Ruserdata
+.DS_Store
 
 # Example code in package build process
 *-Ex.R
@@ -37,6 +38,7 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+*.Rproj
 
 # Secrets config (prevent accidental leak)
 data_scraping/config.toml
