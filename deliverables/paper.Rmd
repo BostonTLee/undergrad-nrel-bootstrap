@@ -21,7 +21,7 @@ df <- read_csv("../data/final/irradiance_full_final.csv")
 ```{r plot-pres-func}
 make_plot_for_pres <- function(plot) {
   ret_plot <- plot +
-  theme(text=element_text(size=21))
+    theme(text = element_text(size = 21))
   return(ret_plot)
 }
 ```
@@ -71,7 +71,7 @@ hour_plot_of_var <- function(df, variable, var_name) {
     geom_boxplot(aes_string(x = "Hour", y = variable)) +
     xlab("Hour (0-23)") +
     ylab(paste("Distribution of", var_name)) +
-    scale_x_discrete(breaks=seq(0,23,2)) +
+    scale_x_discrete(breaks = seq(0, 23, 2)) +
     theme_bw()
   return(ret_plot)
 }
@@ -140,7 +140,6 @@ block_bootstrap_estimates_from_df <- function(df, B = 10000) {
   }
   return(block_bootstrap_estimates)
 }
-test_est <- block_bootstrap_estimates_from_df(df_high_irradiance)
 
 meanv <- function(data, idx) {
   return(mean(data[idx]))
@@ -159,13 +158,19 @@ iid_bootstrap_estimates_from_df <- function(df, B = 10000) {
   return(boot_current$t)
 }
 
-test_iid <- iid_bootstrap_estimates_from_df(df_high_irradiance)
+boot_block <- block_bootstrap_estimates_from_df(df_high_irradiance)
+boot_block_df <- data.frame(boot = boot_block, type = rep("Block", length(boot_block)))
+boot_iid <- iid_bootstrap_estimates_from_df(df_high_irradiance)
+boot_iid_df <- data.frame(boot = boot_iid, type = rep("iid", length(boot_iid)))
 
-mean_samp_dist <- ggplot() +
-  geom_histogram(aes(x = test_est), color = "red", alpha = 0.5) +
-  geom_histogram(aes(x = test_iid), color = "blue", alpha = 0.5) +
+vis_df <- rbind(boot_block_df, boot_iid_df)
+
+mean_boot_plot <- ggplot(vis_df) +
+  geom_histogram(aes(x = boot, y=..density.., fill = type), position = "identity", alpha = 0.5, color = "black") +
+  xlab("Bootstrap sample means") +
+  labs(fill = "Bootstrap type") +
   theme_bw()
-ggsave("./images/mean_samp_dist.png", mean_samp_dist)
+ggsave("./images/mean_boot_plot.png", make_plot_for_pres(mean_boot_plot), width = 16, height = 12)
 ```
 
 ```{r sampling}

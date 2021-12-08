@@ -100,7 +100,7 @@ Bootstrap
 
 # Bootstrapping
 
-
+![](./images/mean_boot_plot.png)
 
 # Future Research
 
