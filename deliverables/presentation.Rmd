@@ -60,32 +60,13 @@ $\downarrow$
 Bootstrap
 \end{center}
 
+# Preprocessing
 
-# Preprocessing: Astronomical Adjustment
+1. Astronomical adjustment: GHI $\rightarrow$ effective irradiance
+1. Power processor: Effective irradiance + voltage $\rightarrow$ current 
+1. PV Module: Effective irradiance $\rightarrow$ current
 
-INSERT FIG 1 FROM PAPER HERE
-- Astronomical adjustments performed on DNI to find *effective* solar irradiance
-- Used: Latitude, longitude, time zone, tilt of the earth 
-- $I_{eff} \propto I_{sun}cos(\Theta)$
-
-# Preprocessing: Power processor
-
-- This gives a procedure for translating effective irradiance to
-current, given an operating voltage
-- Uses:
-  - Effective irradiance
-  - Operating voltage
-  - Properties of solar panel materials
-  - Solar panel layout
-
-# Preprocessing: Photovoltaic (PV) Module
-
-- Power processing units are attached to PV modules to optimize power output for a given current input.
-- Maximizes power $P=IV$ over voltage
-- Here $I$ is a function of $V$
-- Result: Optimal current
-
-# Results
+# Postprocessed data
 
 ADD FIGURES
 
