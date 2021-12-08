@@ -12,3 +12,12 @@ set.seed(400)
 ```{r libs}
 library(tidyverse)
 ```
+
+- We chose our initial paper because of its use of Monte Carlo. After working with it for a little it was brought to our attention that Monte Carlo was used in conjunction with a backward/forward sweep method in order to calculate the pdf. After some confusion it was decided to switch to another paper dealing with the same data/motivation but without said methods (including Monte Carlo).
+- Luckily, the week after we switched papers we begun learning about bootstrapping, a way to sample from our data while taking into consideration our time change. 
+
+INSERT GRAPHS FROM IID BOOTSTRAPPING AND BLOCK HERE
+ALSO INSERT FIG 1 FROM PAPER
+
+- The paper focused most of their sampling on night-day clustering, showing the difference between night and day through current. Night yielded thousands of 0 current values, leading to skewed data when sampling. Instead we took too approaches to bootstrap the current vs. hour data.
+- One using non-overlapping blocks sampling from the 8 hours surrounding the peak irradiance. The other being IID, yielding dependence in our data. 
