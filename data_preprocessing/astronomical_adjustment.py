@@ -53,7 +53,7 @@ class AstronomicalAdjustment:
         """
         EARTH_ANGLE = math.radians(23.45)
         D = cls.d_helper(day_number)
-        return np.arcsin(math.sin(EARTH_ANGLE) * math.sin(D))
+        return math.asin(math.sin(EARTH_ANGLE) * math.sin(D))
 
     @classmethod
     def hour_angle(cls, time, day_number, longitude, utc_off):
@@ -69,8 +69,8 @@ class AstronomicalAdjustment:
             float: Returns the hour angle in radians
 
         """
-        hour_angle_degrees = (
-            15 * cls.apparent_solar_time(time, day_number, longitude, utc_off) - 12
+        hour_angle_degrees = 15 * (
+            cls.apparent_solar_time(time, day_number, longitude, utc_off) - 12
         )
         return math.radians(hour_angle_degrees)
 
@@ -112,7 +112,9 @@ class AstronomicalAdjustment:
 
         """
         D = cls.d_helper(day_number)
-        return (9.87 * math.sin(2 * D) - 7.53 * math.cos(D) - 1.5 * math.sin(D)) / 60
+        return (
+            9.87 * math.sin(2 * D) - 7.53 * math.cos(D) - 1.5 * math.sin(D)
+        ) / 60
 
     @classmethod
     def angle_sun_surface(cls, time, day_number, latitude, longitude, utc_off):
@@ -136,7 +138,7 @@ class AstronomicalAdjustment:
         BETA = cls.BETA
         declination_angle = cls.declination_angle(day_number)
         hour_angle = cls.hour_angle(time, day_number, longitude, utc_off)
-        latitude = np.radians(latitude)
+        latitude = abs(math.radians(latitude))
         ret_val = (
             (math.sin(declination_angle) * math.sin(latitude) * math.cos(BETA))
             - (
@@ -199,7 +201,7 @@ class AstronomicalAdjustment:
         """
 
         cumulative_days = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        return sum(cumulative_days[0 : int(month - 1)]) + day
+        return sum(cumulative_days[0 : int(month)]) + day
 
     @classmethod
     def effective_solar_radiance(
@@ -229,5 +231,7 @@ class AstronomicalAdjustment:
 
         return i_sun * max(
             0,
-            cls.angle_sun_surface(time, day_number, latitude, longitude, utc_off),
+            cls.angle_sun_surface(
+                time, day_number, latitude, longitude, utc_off
+            ),
         )
