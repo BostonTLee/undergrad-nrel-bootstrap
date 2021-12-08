@@ -11,4 +11,160 @@ set.seed(400)
 
 ```{r libs}
 library(tidyverse)
+library(boot)
+```
+
+```{r data}
+df <- read_csv("../data/final/irradiance_full_final.csv")
+```
+
+# EDA
+
+```{r timeseries}
+
+#' Plot a timeseries of a single variable
+#'
+#' @param df A dataframe containing `variable`
+#' @param variable A string referring to a column of `df`
+#' @param n_days The number of days (starting from the
+#'    beginning of the data) to plot
+#' @return A ggplot object of a timeseries of `variable` for `n_days` days
+time_series_of_var <- function(df, variable, n_days) {
+  ret_plot <- df %>%
+    mutate(date = lubridate::make_datetime(Year, Month, Day, Hour, Minute)) %>%
+    head(24 * n_days) %>%
+    ggplot() +
+    geom_line(aes_string(x = "date", y = variable)) +
+    theme_bw()
+  return(ret_plot)
+}
+
+time_series_of_var(df, "GHI", 6)
+time_series_of_var(df, "current_out", 6)
+```
+
+```{r hour-plot}
+
+#' Plot the values of `variable` at each hour of the day
+#'
+#' @param df A dataframe containing `variable`
+#' @param variable A string referring to a column of `df`
+#' @return A ggplot object of a boxplot of `variable` segmented by hour
+hour_plot_of_var <- function(df, variable) {
+  df$Hour <- as.factor(df$Hour)
+  ret_plot <- df %>%
+    ggplot() +
+    geom_boxplot(aes_string(x = "Hour", y = variable)) +
+    xlab("Hour (0-23)") +
+    ylab(paste("Distribution of", variable)) +
+    theme_bw()
+  return(ret_plot)
+}
+
+hour_plot_of_var(df, "GHI")
+hour_plot_of_var(df, "current_out")
+```
+
+
+# Data filtering
+
+```{r filter}
+HOUR_WINDOW <- 11:16
+df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
+filtered_current_hist <- ggplot() +
+  geom_histogram(aes(x = df_high_irradiance$current_out)) +
+  theme_bw()
+print(filtered_current_hist)
+```
+
+# Bootstrapping
+
+```{r functions}
+
+#' Given a dataframe, return a matrix of bootstrap blocks
+#'
+#' @param df A dataframe of irradiance values
+#' @return A matrix whose rows are bootstrap blocks
+make_blocks_from_df <- function(df) {
+  df <- df %>%
+    mutate(date = lubridate::make_date(Year, Month, Day))
+  # The number of blocks is the number of days
+  number_of_blocks <- length(unique(df$date))
+  # The length of a block is the number of
+  # observations in each individual day.
+  # In this case, we can simply look at the first one,
+  # because all of the days have the same number of observations
+  length_of_block <- nrow(df[df$date == unique(df$date)[1], ])
+  blocks <- matrix(NA, nrow = number_of_blocks, ncol = length_of_block)
+  start <- 1
+  stop <- length_of_block
+  for (i in 1:number_of_blocks) {
+    # blocks[i, ] <- df$current_out[(i - 1) * length_of_block + 1 : (i * length_of_block)]
+    blocks[i, ] <- df$current_out[start:stop]
+    start <- start + length_of_block
+    stop <- stop + length_of_block
+  }
+  return(blocks)
+}
+# We have to use the modified DataFrame here,
+# or else the assumptions about block size don't hold
+test <- make_blocks_from_df(df_high_irradiance)
+
+block_bootstrap_estimates_from_df <- function(df, B = 10000) {
+  block_bootstrap_estimates <- rep(NA, B)
+  blocks <- make_blocks_from_df(df)
+  number_of_blocks <- nrow(blocks)
+  for (i in 1:B) {
+    # sample blocks
+    idx <- sample(1:number_of_blocks, number_of_blocks, replace = TRUE)
+    # Concatenate blocks at the given indices
+    # This gives a "pseudo-dataset" containing resampled blocks
+    block_bootstrap_estimates[i] <- mean(as.vector(t(blocks[idx, ])))
+  }
+  return(block_bootstrap_estimates)
+}
+test_est <- block_bootstrap_estimates_from_df(df_high_irradiance)
+
+meanv <- function(data, idx) {
+  return(mean(data[idx]))
+}
+
+sdv <- function(data, idx) {
+  return(sd(data[idx]))
+}
+
+medianv <- function(data, idx) {
+  return(median(data[idx]))
+}
+
+iid_bootstrap_estimates_from_df <- function(df, B = 10000) {
+  boot_current <- boot(df$current_out, meanv, B)
+  return(boot_current$t)
+}
+
+test_iid <- iid_bootstrap_estimates_from_df(df_high_irradiance)
+
+mean_samp_dist <- ggplot() +
+  geom_histogram(aes(x = test_est), color = "red", alpha = 0.5) +
+  geom_histogram(aes(x = test_iid), color = "blue", alpha = 0.5) +
+  theme_bw()
+ggsave("./images/mean_samp_dist.png", mean_samp_dist)
+```
+
+```{r sampling}
+# B1 <- df[df$Hour == c(7:10),]$current_output # Hours before peak
+# B2 <- df[df$Hour == c(11:14),]$current_output # Peak hours
+# B3 <- df[df$Hour == c(15:18),]$current_output # Hours after peak
+
+# nbb(hours, 4) # in order to make b blocks I would need to solve for b = [n/l] (floor) where n is the length of our data and l is 4, so make nbb call l instead of ib
+
+# nbb(hours, 12)
+
+# Could also block instead by hours but by total current output. Peak hours
+# would be a frame around the highest output and then hours before and after
+# would coincide with that. This would cause the hours to potentially be
+# different based on the season/month as months that get dark earlier could see
+# peak hours earlier in the day.
+
+# dpeak <- c(B1,B2,B3)
 ```
