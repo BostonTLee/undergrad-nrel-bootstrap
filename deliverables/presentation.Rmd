@@ -63,8 +63,8 @@ Bootstrap
 # Preprocessing
 
 1. Astronomical adjustment: GHI $\rightarrow$ effective irradiance
-1. Power processor: Effective irradiance + voltage $\rightarrow$ current 
-1. PV Module: Effective irradiance $\rightarrow$ current
+1. PV Module: Effective irradiance + voltage $\rightarrow$ current 
+1. Power processor: Effective irradiance $\rightarrow$ current
 
 # Postprocessed data
 
