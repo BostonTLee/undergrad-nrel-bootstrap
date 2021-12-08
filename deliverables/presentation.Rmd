@@ -7,6 +7,12 @@ output:
 bibliography: references.bib
 ---
 
+# Motivation
+
+- Renewable energy solutions
+- Problem: balance contribution of PV modules with demand on electrical grid
+  - Our work deals with the expected PV contribution
+
 # Research Question
 
 - _SolarStat: Modeling Photovolatic Sources through Stochastic Markov Processes_
@@ -17,13 +23,6 @@ bibliography: references.bib
 - *Our objective*: 
   - Solar irradiance $\rightarrow$ current output 
   - Compare iid and time series bootstrap
-
-# Motivation
-
-- Understanding renewable energy sources like solar power is critical to the next century.
-- PV modules installed at individual households/nodes reduce the overall load on the electrical grid.
-- Balancing the expected contribution of an individual PV module with the expected residual demand required of the grid is a large optimization problem.
-    - We dealt with half of that optimization problem
 
 # Background
 
