@@ -9,52 +9,87 @@ bibliography: references.bib
 
 # Research Question
 
-- SolarStat: Modeling Photovolatic Sources through Stochastic Markov Processes
-    - Marco Miozzo, Davide Zordan, Paolo Dini, and Michele Rossi
-- Their objective: Describe how solar irradiance is translated into current output in a PV system throughout the day and cluster results with a Markov model to determine day/night breaks.
-- Our objective: Describe how solar irradiance is translated into current output in a PV system and bootsrap results both with and without respect to time, and compare.
+- _SolarStat: Modeling Photovolatic Sources through Stochastic Markov Processes_
+
+- *Their objective*: 
+  - Solar irradiance $\rightarrow$ current output 
+  - Cluster results with a Markov model
+- *Our objective*: 
+  - Solar irradiance $\rightarrow$ current output 
+  - Compare iid and time series bootstrap
 
 # Motivation
 
 - Understanding renewable energy sources like solar power is critical to the next century.
 - PV modules installed at individual households/nodes reduce the overall load on the electrical grid.
 - Balancing the expected contribution of an individual PV module with the expected residual demand required of the grid is a large optimization problem.
-    - We dealt with half of that optimization problem involving the expected contribution of the PV module.
+    - We dealt with half of that optimization problem
 
 # Background
 
+- The paper used data from LA, 1991-2010
+- The paper uses ETR (we used similar GHI)
+- Simulates for a specific model of small solar panel 
+- Panels "laid out" in a 6x6 grid.
 
-# Data
+# Data 
 
-- National Solar Radiation Database (NSRD) from National Renewable Energy Laboratory (NREL) accessed through API
-- Los Angeles data (1998-2010) was used to replicate the source paper.
-    - Date and time, direct normal irradiance (DNI), and temperature data used.
+- National Solar Radiation Database (NSRDB) from National Renewable Energy
+Laboratory (NREL)
+- Los Angeles data for 1998-2010
 
-# Preprocessing
+# Overall process
+
+\begin{center}
+Raw data (NSRDB)
+
+$\downarrow$
+
+Astronomical adjustment
+
+$\downarrow$
+
+PV module
+
+$\downarrow$
+
+Power processor
+
+$\downarrow$
+
+Bootstrap
+\end{center}
+
+
+# Preprocessing: Astronomical Adjustment
 
 INSERT FIG 1 FROM PAPER HERE
-- Astronomical adjustments performed on DNI to find effective solar irradiance:
-    - Latitude, longitude, time zone, and the tilt of the earth used in calculations.
-    - $I_{eff} \propto I_{sun}cos(\theta)$
+- Astronomical adjustments performed on DNI to find *effective* solar irradiance
+- Used: Latitude, longitude, time zone, tilt of the earth 
+- $I_{eff} \propto I_{sun}cos(\Theta)$
 
-# Photovolatic (PV) Module
+# Preprocessing: Power processor
+
+- This gives a procedure for translating effective irradiance to
+current, given an operating voltage
+- Uses:
+  - Effective irradiance
+  - Operating voltage
+  - Properties of solar panel materials
+  - Solar panel layout
+
+# Preprocessing: Photovoltaic (PV) Module
 
 - Power processing units are attached to PV modules to optimize power output for a given current input.
-    - Maximizes power $P=IV$ over a range of possible voltages.
-- Result of interest is current output after being adjusted by the power processor and an assumed leakage rate.
-
-# Bootstrapping
-
-- We chose our initial paper because of its use of Monte Carlo. After working with it for a little it was brought to our attention that Monte Carlo was used in conjunction with a backward/forward sweep method in order to calculate the pdf. After some confusion it was decided to switch to another paper dealing with the same data/motivation but without said methods (including Monte Carlo).
-- Luckily, the week after we switched papers we begun learning about bootstrapping, a way to sample from our data while taking into consideration our time change. 
-
-INSERT GRAPHS FROM IID BOOTSTRAPPING AND BLOCK HERE
-ALSO INSERT FIG 1 FROM PAPER
-
-- The paper focused most of their sampling on night-day clustering, showing the difference between night and day through current. Night yielded thousands of 0 current values, leading to skewed data when sampling. Instead we took too approaches to bootstrap the current vs. hour data.
-- One using non-overlapping blocks sampling from the 8 hours surrounding the peak irradiance. The other being IID, yielding dependence in our data. 
+- Maximizes power $P=IV$ over voltage
+- Here $I$ is a function of $V$
+- Result: Optimal current
 
 # Results
+
+ADD FIGURES
+
+# Bootstrapping
 
 
 
