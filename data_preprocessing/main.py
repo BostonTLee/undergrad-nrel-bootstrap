@@ -14,13 +14,13 @@ def main():
 
     df = pd.read_csv(RAW_CSV)
 
-    lat = 34.05
-    lon = 28.24
+    lat =  34.0522
+    lon = -118.2437
     utc = -8
 
     df[SOLAR_IRRADIANCE] = df.apply(
         lambda row: aa.effective_solar_radiance(
-            row["DHI"],
+            row["GHI"],
             row["Month"],
             row["Day"],
             row["Hour"],
