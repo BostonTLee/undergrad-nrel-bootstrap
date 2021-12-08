@@ -9,13 +9,14 @@ output: pdf_document
 set.seed(400)
 ```
 
-```{r libs}
+```{r libs, include=FALSE, message=FALSE}
 library(tidyverse)
 library(boot)
 ```
 
-```{r data}
-df <- read_csv("../data/final/irradiance_full_final.csv")
+```{r data, message=FALSE, warning=FALSE}
+df <- read_csv("../data/final/irradiance_full_final.csv") %>%
+  select(-'...1')
 ```
 
 ```{r plot-pres-func}
@@ -28,7 +29,7 @@ make_plot_for_pres <- function(plot) {
 
 # EDA
 
-```{r timeseries}
+```{r timeseries, warning=FALSE}
 
 #' Plot a timeseries of a single variable
 #'
@@ -89,8 +90,10 @@ ggsave("./images/hour_plot_current.png", make_plot_for_pres(hour_plot_current))
 HOUR_WINDOW <- 11:16
 df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
 filtered_current_hist <- ggplot() +
-  geom_histogram(aes(x = df_high_irradiance$current_out)) +
-  theme_bw()
+  geom_histogram(aes(x = df_high_irradiance$current_out, y = ..density..), binwidth = .0025) +
+  theme_bw() +
+  labs(title='Distribution of Current Outputs', subtitle='Restricted to high irradiance hours of the day', 
+       x = 'Current Output', y = 'Density')
 print(filtered_current_hist)
 ```
 
@@ -165,12 +168,40 @@ boot_iid_df <- data.frame(boot = boot_iid, type = rep("iid", length(boot_iid)))
 
 vis_df <- rbind(boot_block_df, boot_iid_df)
 
+# percentile bootstrap CI used
+alpha <- .05
+block_ci <- quantile(boot_block_df$boot, c(alpha / 2, 1 - alpha / 2))
+iid_ci <- quantile(boot_iid_df$boot, c(alpha / 2, 1 - alpha / 2))
+
 mean_boot_plot <- ggplot(vis_df) +
-  geom_histogram(aes(x = boot, y=..density.., fill = type), position = "identity", alpha = 0.5, color = "black") +
-  xlab("Bootstrap sample means") +
-  labs(fill = "Bootstrap type") +
+  geom_histogram(aes(x = boot, y = ..density.., fill = type), position = "identity", alpha = .5, color = "black", 
+                 binwidth = .0001) +
+  # geom_segment(aes(x = block_ci[1], xend = block_ci[2], y = 1250, yend = 1250), color = 'tomato', alpha = .01) +
+  geom_vline(aes(xintercept = block_ci[1]), linetype = 'dashed', color = 'tomato', alpha = .5) +
+  geom_vline(aes(xintercept = block_ci[2]), linetype = 'dashed', color = 'tomato', alpha = .5) +
+  # geom_segment(aes(x = iid_ci[1], xend = iid_ci[2], y = 1300, yend = 1300), color = 'turquoise3', alpha = .01) +
+  geom_vline(aes(xintercept = iid_ci[1]), linetype = 'dashed', color = 'turquoise3', alpha = .5) +
+  geom_vline(aes(xintercept = iid_ci[2]), linetype = 'dashed', color = 'turquoise3', alpha = .5) +
+  labs(fill = "Bootstrap Type", title='Bootstrapped Current Output', subtitle = 'Percentile confidence intervals given', 
+       x = 'Bootstrap Sample Means', y = 'Density') +
   theme_bw()
 ggsave("./images/mean_boot_plot.png", make_plot_for_pres(mean_boot_plot), width = 16, height = 12)
+```
+
+```{r}
+# rough MC coverage estimate assuming dependent bootstrap distribution as a null
+B <- 10000
+n <- nrow(boot_block_df)
+
+lower <- as.numeric(iid_ci[1])
+upper <- as.numeric(iid_ci[2])
+
+mu <- mean(boot_block_df$boot)
+sigma <- sd(boot_block_df$boot)
+
+sample <- rnorm(B, mu, sigma)
+
+sum(sample >= lower & sample <= upper) / n
 ```
 
 ```{r sampling}
