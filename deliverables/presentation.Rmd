@@ -34,9 +34,19 @@ bibliography: references.bib
 
 # Data 
 
+::: columns
+:::: column
+![](./images/time_series_ghi.png)
+::::
+:::: column
+![](./images/hour_plot_ghi.png)
+::::
+:::
+
 - National Solar Radiation Database (NSRDB) from National Renewable Energy
 Laboratory (NREL)
 - Los Angeles data for 1998-2010
+
 
 # Overall process
 
@@ -68,7 +78,25 @@ Bootstrap
 
 # Postprocessed data
 
-ADD FIGURES
+::: columns
+:::: column
+![](./images/time_series_ghi.png)
+::::
+:::: column
+![](./images/time_series_current.png)
+::::
+:::
+
+# Postprocessed data, cont.
+
+::: columns
+:::: column
+![](./images/hour_plot_ghi.png)
+::::
+:::: column
+![](./images/hour_plot_current.png)
+::::
+:::
 
 # Bootstrapping
 

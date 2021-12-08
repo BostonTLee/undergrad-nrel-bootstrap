@@ -18,6 +18,14 @@ library(boot)
 df <- read_csv("../data/final/irradiance_full_final.csv")
 ```
 
+```{r plot-pres-func}
+make_plot_for_pres <- function(plot) {
+  ret_plot <- plot +
+  theme(text=element_text(size=21))
+  return(ret_plot)
+}
+```
+
 # EDA
 
 ```{r timeseries}
@@ -26,21 +34,26 @@ df <- read_csv("../data/final/irradiance_full_final.csv")
 #'
 #' @param df A dataframe containing `variable`
 #' @param variable A string referring to a column of `df`
+#' @param var_name The human-readable name of `variable`, for labelling
 #' @param n_days The number of days (starting from the
 #'    beginning of the data) to plot
 #' @return A ggplot object of a timeseries of `variable` for `n_days` days
-time_series_of_var <- function(df, variable, n_days) {
+time_series_of_var <- function(df, variable, var_name, n_days) {
   ret_plot <- df %>%
     mutate(date = lubridate::make_datetime(Year, Month, Day, Hour, Minute)) %>%
     head(24 * n_days) %>%
     ggplot() +
     geom_line(aes_string(x = "date", y = variable)) +
+    xlab("Date") +
+    ylab(var_name) +
     theme_bw()
   return(ret_plot)
 }
 
-time_series_of_var(df, "GHI", 6)
-time_series_of_var(df, "current_out", 6)
+time_series_ghi <- time_series_of_var(df, "GHI", "GHI", 6)
+time_series_current <- time_series_of_var(df, "current_out", "Output current", 6)
+ggsave("./images/time_series_ghi.png", make_plot_for_pres(time_series_ghi))
+ggsave("./images/time_series_current.png", make_plot_for_pres(time_series_current))
 ```
 
 ```{r hour-plot}
@@ -49,20 +62,23 @@ time_series_of_var(df, "current_out", 6)
 #'
 #' @param df A dataframe containing `variable`
 #' @param variable A string referring to a column of `df`
+#' @param var_name The human-readable name of `variable`, for labelling
 #' @return A ggplot object of a boxplot of `variable` segmented by hour
-hour_plot_of_var <- function(df, variable) {
+hour_plot_of_var <- function(df, variable, var_name) {
   df$Hour <- as.factor(df$Hour)
   ret_plot <- df %>%
     ggplot() +
     geom_boxplot(aes_string(x = "Hour", y = variable)) +
     xlab("Hour (0-23)") +
-    ylab(paste("Distribution of", variable)) +
+    ylab(paste("Distribution of", var_name)) +
     theme_bw()
   return(ret_plot)
 }
 
-hour_plot_of_var(df, "GHI")
-hour_plot_of_var(df, "current_out")
+hour_plot_ghi <- hour_plot_of_var(df, "GHI", "GHI")
+hour_plot_current <- hour_plot_of_var(df, "current_out", "output current")
+ggsave("./images/hour_plot_ghi.png", make_plot_for_pres(hour_plot_ghi))
+ggsave("./images/hour_plot_current.png", make_plot_for_pres(hour_plot_current))
 ```
 
 
