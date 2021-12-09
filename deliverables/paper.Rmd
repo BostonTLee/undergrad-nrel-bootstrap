@@ -205,6 +205,40 @@ sum(sample >= lower & sample <= upper) / n
 ```
 
 ```{r sampling}
+time_series_irradiance <- function(df, variable, var_name, hour_range) {
+  newdf <- df %>%
+    mutate(date = lubridate::make_datetime(Year, Month, Day, Hour, Minute)) %>%
+    # each day in this dataset is subset from 11:16, meaning there is 6 hours per day
+    head(hour_range * 6)
+  
+  blocks <- c(newdf$date[seq(1,length(newdf$date), hour_range)])
+ 
+  re_plot <- ggplot(newdf) +
+    geom_line(aes_string(x = "date", y = variable)) +
+    geom_vline(xintercept = blocks, colour = "red") +
+    xlab("Date") +
+    ylab(var_name) +
+    theme_bw()
+  return(ret_plot)
+}
+
+sixhr_plot_current <- time_series_irradiance(df_high_irradiance, "current_out", "Current Output", 6)
+ggsave("./images/sixhr_plot_current.png", make_plot_for_pres(sixhr_plot_current))
+
+HOUR_WINDOW <- 8:19
+df_more_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
+filtered_current_hist <- ggplot() +
+  geom_histogram(aes(x = df_high_irradiance$current_out)) +
+  theme_bw()
+print(filtered_current_hist)
+
+twelvehr_plot_current <- time_series_irradiance(df_more_irradiance, "current_out", "Current Output", 12)
+ggsave("./images/twelvehr_plot_current.png", make_plot_for_pres(twelvehr_plot_current))
+
+day_plot_current <- time_series_irradiance(df, "current_out", "Current Output", 24)
+ggsave("./images/day_plot_current.png", make_plot_for_pres(day_plot_current))
+
+
 # B1 <- df[df$Hour == c(7:10),]$current_output # Hours before peak
 # B2 <- df[df$Hour == c(11:14),]$current_output # Peak hours
 # B3 <- df[df$Hour == c(15:18),]$current_output # Hours after peak
