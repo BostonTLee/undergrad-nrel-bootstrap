@@ -75,6 +75,9 @@ Bootstrap
 1. PV Module: Effective irradiance + voltage $\rightarrow$ current 
 1. Power processor: Effective irradiance $\rightarrow$ current
 
+![](./images/power_flow.png)
+
+
 # Postprocessed data
 
 ::: columns
