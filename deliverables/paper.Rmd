@@ -213,7 +213,7 @@ time_series_irradiance <- function(df, variable, var_name, hour_range) {
   
   blocks <- c(newdf$date[seq(1,length(newdf$date), hour_range)])
  
-  re_plot <- ggplot(newdf) +
+  ret_plot <- ggplot(newdf) +
     geom_line(aes_string(x = "date", y = variable)) +
     geom_vline(xintercept = blocks, colour = "red") +
     xlab("Date") +
