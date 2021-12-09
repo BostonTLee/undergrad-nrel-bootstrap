@@ -100,7 +100,7 @@ Bootstrap
 ::::
 :::
 
-# Boots
+# Bootstrapping Blocks
 
 ![](./images/sixhr_plot_current.png)
 
