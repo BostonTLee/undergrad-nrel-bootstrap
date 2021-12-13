@@ -7,6 +7,7 @@
 
 # User-specific files
 .Ruserdata
+.DS_Store
 
 # Example code in package build process
 *-Ex.R
@@ -37,10 +38,21 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+*.Rproj
 
 # Secrets config (prevent accidental leak)
-data_preprocessing/config.toml
+data_scraping/config.toml
 
+# Python generated files
+
+*__pycache__
 # Prevent CSVs outside intended directory (prompted by mistake)
 *.csv
 !data/*.csv
+
+# Rmd output
+
+deliverables/*.pdf
+deliverables/*.log
+deliverables/*.tex
+deliverables/images/*.png
