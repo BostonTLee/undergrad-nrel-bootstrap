@@ -52,7 +52,7 @@ and the data used in @miozzo_2014.
 Firstly, the year range in the paper was 1991--2010,
 while the year range available when we acquired
 the data from the NSRDB API was 1998--2010.
-Secondly, the primary variable used in 
+Secondly, the primary variable used in
 was extraterrestrial radiation,
 "the amount of global horizontal radiation that a location on Earth would
 receive if there was no atmosphere" (@nrel_glossary).
@@ -142,7 +142,7 @@ had to be taken to simulate the electrical workings of a real PV module. First,
 adjustments had to be made to account for the fact that an imperfect amount of
 irradiance actually reaches a PV module for capture. Then, effective irradiance
 must be translated into output current and maximized with an attached power
-processor. The process and accompanying assumptions are given below. 
+processor. The process and accompanying assumptions are given below.
 
 ## Effective Irradiance
 
@@ -152,7 +152,7 @@ must be made. Among these are the tilt and rotation of the Earth, the latitude
 and longitude of the PV module, and the inclination of the panel towards the
 horizon. Most simply, $I_{eff} \propto I_{sun} cos \theta(t, N)$ where $\theta
 \in [-\frac{\pi}{2},\frac{\pi}{2}]$ is the angle between the sunlight and the
-surface of the solar cell [@miozzo_2014, p. 689]. 
+surface of the solar cell [@miozzo_2014, p. 689].
 $$
 \begin{aligned}
 cos \theta(t, N) = & sin \gamma(N) sin La cos \beta - \\
@@ -166,7 +166,7 @@ Here, $\gamma (N) = sin^{-1}[sin(.409)sin(D(N))]$ is known as the declination an
 The constants $\alpha$ and $\beta$
 were supplied as assumptions based on the location of the NSRDB
 data [@miozzo_2014, p. 691].
-Finally, the hour angle $\omega(t, N)$ accounts for the angle of sunlight given the rotation of the Earth [@miozzo_2014, p. 689]. 
+Finally, the hour angle $\omega(t, N)$ accounts for the angle of sunlight given the rotation of the Earth [@miozzo_2014, p. 689].
 $$
 \begin{aligned}
 w(t,N) &= 15 (AST(t,N) - 12) \\
@@ -178,7 +178,7 @@ $$
 Here, $AST(t,N) \in [0,24]$ is the apparent solar time relative to the sun and is calculated as an adjustment to the current time $t$ based on longitude $Lo$, an offset from the coordinated universal time $UTC_{off}$, and the equation of time $ET(N)$ [@miozzo_2014, p. 689].
 The above calculations produce results in degrees but values were switched to radians before trigonometric functions were applied.
 Ultimately, $I_{eff} \propto I_{sun} cos \theta(t, N)$ resulted from our astronomical adjustments and was used for PV module
-calculations [@miozzo_2014, p. 689]. 
+calculations [@miozzo_2014, p. 689].
 
 ## PV Module
 
@@ -188,20 +188,19 @@ that the maximum power is extracted. It does this by testing a range of open
 circuit voltages $v_{oc}$ between zero and an assumed maximum $v_{oc} = 1.8$ on
 the PV module's I-V curve which describes how current and voltage vary together
 for each solar cell in the module [@miozzo_2014, p. 691].
-Here, the I-V curve is given by 
+Here, the I-V curve is given by
 $$
 i_{out} = i_{l} - i_{o}[e^{\frac{qv}{n \kappa T}} - 1]
-$$ 
+$$
 with constants $q = 1.6*10^{-19}$ and $\kappa = 1.38 * 10^{-23}$. The light-generated current $i_{l}(t,N) = .0005 I_{eff}(t,N)$ which adjusts $I_{eff}$ for the assumed short circuit current $i_{sc} = 5$ and a radiation rate factor [@miozzo_2014, p. 691].
-With a leakage factor $i_{o}$ and the ambient temperature $T$ in degrees Kelvin, $i_{out}$ can be calculated for various voltage values. The combined power of the module is then calculated by 
+With a leakage factor $i_{o}$ and the ambient temperature $T$ in degrees Kelvin, $i_{out}$ can be calculated for various voltage values. The combined power of the module is then calculated by
 $$
 P = n_{p} n_{s} max\{i_{out} v\}
-$$ 
+$$
 where $n_{p} = 6$ is the assumed number of parallel-wired solar cells in the module and $n_{s} = 6$ is the assumed number of series-wired solar cells in the module [@miozzo_2014, p. 691].
-A final conversion efficiency factor $\eta = .211$ is applied and $P'_{max} = \eta P_{max}$ is returned. 
+A final conversion efficiency factor $\eta = .211$ is applied and $P'_{max} = \eta P_{max}$ is returned.
 
-# Bootstrapping
-
+# Methods
 
 ```{r functions, include=FALSE}
 
@@ -364,6 +363,78 @@ ggsave("./images/day_plot_current.png", make_plot_for_pres(day_plot_current))
 # dpeak <- c(B1,B2,B3)
 ```
 
+The main goal of this paper is to provide point and interval
+estimates for average (simulated) current output
+based on solar irradiance.
+Given that the sample size is large,
+a simple average may have been sufficient.
+However, we were interested in characterizing
+the difference in performance between
+standard bootstrapping methods and dependent bootstrapping methods.
+The current output provides a good test case for this.
+Both the preprocessed and postprocessed currents are not independent data;
+values of either irradiance or current output
+depend on surrounding values in time.
+As such, standard methods for bootstrapping should be
+less effective at estimating the true mean irradiance output.
+
+The standard (*iid*) bootstrap procedure begins with
+the assumption that our original sample consists of
+independent and identically distributed draws from a distribution.
+The univariate bootstrap then provides a distribution of bootstrap
+estimates for a statistic,
+$\hat{\theta}^{(1)}, \ldots, \{\hat{\theta}^{(B)}$,
+where $B$ is the number of bootstrap replicates
+and $\theta$ is a statistic of interest.
+For our purposes, $\theta$ is simply the average current output
+for our specific solar module configuration.
+The *iid* bootstrap constructs the distribution of bootstrap estimates
+as follows:
+
+For $i = 1, \ldots, B$:
+
+1. Sample $n$ values $x_j$ from the data with replacement
+1. Calculate
+   $\hat{\theta}^{(i)} = \frac{1}{n} \sum_{j = 1}^{n} x_j$
+   for the bootstrap sample.
+
+
+In contrast, a dependent bootstrap does not assume
+the original sample was independent and identically distributed.
+To capture the dependence in the data,
+we chose to use a nonparametric non-overlapping block bootstrap.
+This is because during the data filtering step,
+we excluded nighttime values from the dataset.
+This meant we essentially had predefined,
+mostly independent blocks from which to sample:
+the daytime current values for each day.
+Given that our daytime current values for each day
+could be used as non-overlapping blocks,
+our dataset could be seen as a collection
+of $n_B$ blocks.
+
+
+For i = $1, \ldots, B$:
+
+1. Sample $n_B$ blocks (days)
+$\mathcal{B}_{1}, ..., \mathcal{B}_{n_B}$
+from the data with replacement.
+1. Calculate
+   $\hat{\theta}^{(i)} = \frac{1}{n} \sum_{j = 1}^{n} x_j$
+   on a new dataset
+  $\mathcal{B}_{1} \cup \cdots \cup \mathcal{B}_{n_B}$.
+
+
+The new dataset in Step 2
+corresponds to sampling and rearranging days to make
+a new dataset the same size as the original.
+This procedure preserves the dependence within days,
+while still allowing resampling.
+
+
+
+# Results
+
 # Future Work
 
 For future work, it would be good to examine the wider implications
@@ -401,10 +472,10 @@ sources, to name a few (@constante_2018).
 
 
 - We chose our initial paper because of its use of Monte Carlo. After working with it for a little it was brought to our attention that Monte Carlo was used in conjunction with a backward/forward sweep method in order to calculate the pdf. After some confusion it was decided to switch to another paper dealing with the same data/motivation but without said methods (including Monte Carlo).
-- Luckily, the week after we switched papers we begun learning about bootstrapping, a way to sample from our data while taking into consideration our time change. 
+- Luckily, the week after we switched papers we begun learning about bootstrapping, a way to sample from our data while taking into consideration our time change.
 
 INSERT GRAPHS FROM IID BOOTSTRAPPING AND BLOCK HERE
 ALSO INSERT FIG 1 FROM PAPER
 
 - The paper focused most of their sampling on night-day clustering, showing the difference between night and day through current. Night yielded thousands of 0 current values, leading to skewed data when sampling. Instead we took too approaches to bootstrap the current vs. hour data.
-- One using non-overlapping blocks sampling from the 8 hours surrounding the peak irradiance. The other being IID, yielding dependence in our data. 
+- One using non-overlapping blocks sampling from the 8 hours surrounding the peak irradiance. The other being IID, yielding dependence in our data.
