@@ -3,23 +3,28 @@ title: "Time Series Bootstrapping For Solar Current"
 author: "Evan Kessler, Adam Kiehl, and Boston Lee"
 date: "2021/12/16"
 output: pdf_document
+bibliography: references.bib
 ---
 
-```{r reprod}
+```{r reprod, include=FALSE}
+# Reproducibility
 set.seed(400)
 ```
 
 ```{r libs, include=FALSE, message=FALSE}
+# Import packages
+library(knitr)
 library(tidyverse)
 library(boot)
 ```
 
-```{r data, message=FALSE, warning=FALSE}
-df <- read_csv("../data/final/irradiance_full_final.csv") %>%
-  select(-'...1')
+```{r data, include=FALSE, message=FALSE, warning=FALSE}
+# Read in preprocessed data
+df <- read_csv("../data/final/irradiance_full_final.csv")
 ```
 
-```{r plot-pres-func}
+```{r plot-pres-func, include=FALSE}
+# Function to format plots for use in presentation
 make_plot_for_pres <- function(plot) {
   ret_plot <- plot +
     theme(text = element_text(size = 21))
@@ -27,9 +32,56 @@ make_plot_for_pres <- function(plot) {
 }
 ```
 
+# Background
+
+TODO
+
+# Data
+
+The data used was from the National Solar Radiation Database (NSRDB),
+provided by the National Renewable Energy Laboratory
+(NREL) (@nsrdb).
+The data was acquired via the NSRDB API (@nsrdb_api).
+
+
+The model paper for this project, @miozzo_2014
+used data cited from the NSRDB.
+However,
+there were some discrepancies between our data
+and the data used in @miozzo_2014.
+Firstly, the year range in the paper was 1991--2010,
+while the year range available when we acquired
+the data from the NSRDB API was 1998--2010.
+Secondly, the primary variable used in 
+was extraterrestrial radiation,
+"the amount of global horizontal radiation that a location on Earth would
+receive if there was no atmosphere" (@nrel_glossary).
+Our primary measure was global horizontal radiation (GHI),
+which is the total solar radiation to reach
+a horizontal plane on the Earth's surface (@nrel_glossary).
+Because ETR and GHI are closely related,
+we felt that the data was acceptable for a
+replication of the process in @miozzo_2014,
+with the caveat that the calculations may only be approximate.
+
+## Data filtering
+
+```{r filter, include=FALSE}
+HOUR_WINDOW <- 11:16
+df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
+filtered_current_hist <- ggplot() +
+  geom_histogram(aes(x = df_high_irradiance$current_out, y = ..density..), binwidth = .0025) +
+  theme_bw() +
+  labs(
+    title = "Distribution of Current Outputs", subtitle = "Restricted to high irradiance hours of the day",
+    x = "Current Output", y = "Density"
+  )
+print(filtered_current_hist)
+```
+
 # EDA
 
-```{r timeseries, warning=FALSE}
+```{r timeseries, include=FALSE, warning=FALSE}
 
 #' Plot a timeseries of a single variable
 #'
@@ -57,7 +109,7 @@ ggsave("./images/time_series_ghi.png", make_plot_for_pres(time_series_ghi))
 ggsave("./images/time_series_current.png", make_plot_for_pres(time_series_current))
 ```
 
-```{r hour-plot}
+```{r hour-plot, include=FALSE}
 
 #' Plot the values of `variable` at each hour of the day
 #'
@@ -85,21 +137,36 @@ ggsave("./images/hour_plot_current.png", make_plot_for_pres(hour_plot_current))
 
 # Preprocessing
 
-To translate raw irradiance data into meaningful current data, several steps had to be taken to simulate the electrical workings of a real PV module. First, adjustments had to be made to account for the fact that an imperfect amount of irradiance actually reaches a PV module for capture. Then, effective irradiance must be translated into output current and maximized with an attached power processor. The process and accompanying assumptions are given below. 
+To translate raw irradiance data into meaningful current data, several steps
+had to be taken to simulate the electrical workings of a real PV module. First,
+adjustments had to be made to account for the fact that an imperfect amount of
+irradiance actually reaches a PV module for capture. Then, effective irradiance
+must be translated into output current and maximized with an attached power
+processor. The process and accompanying assumptions are given below. 
 
 ## Effective Irradiance
 
-The effective irradiance that reaches a PV module is different from the total irradiance emitted by the sun due to a variety of small considerations that must be made. Among these are the tilt and rotation of the Earth, the latitude and longitude of the PV module, and the inclination of the panel towards the horizon. Most simply, $I_{eff} \propto I_{sun} cos \theta(t, N)$ where $\theta \in [-\frac{\pi}{2},\frac{\pi}{2}]$ is the angle between the sunlight and the surface of the solar cell. 
+The effective irradiance that reaches a PV module is different from the total
+irradiance emitted by the sun due to a variety of small considerations that
+must be made. Among these are the tilt and rotation of the Earth, the latitude
+and longitude of the PV module, and the inclination of the panel towards the
+horizon. Most simply, $I_{eff} \propto I_{sun} cos \theta(t, N)$ where $\theta
+\in [-\frac{\pi}{2},\frac{\pi}{2}]$ is the angle between the sunlight and the
+surface of the solar cell [@miozzo_2014, p. 689]. 
 $$
 \begin{aligned}
 cos \theta(t, N) = & sin \gamma(N) sin La cos \beta - \\
 & sin \gamma(N) cos La sin \beta cos \alpha + \\
-& cos \gamma(N) cos La cos \beta cos w(t,N) + \\
-& cos \gamma(N) sin La sin \beta cos \alpha cos w(t,N) + \\
-& cos \gamma(N) sin \beta sin \alpha sin w(t,N) \\
+& cos \gamma(N) cos La cos \beta cos \omega(t,N) + \\
+& cos \gamma(N) sin La sin \beta cos \alpha cos \omega(t,N) + \\
+& cos \gamma(N) sin \beta sin \alpha sin \omega(t,N) \\
 \end{aligned}
 $$
-Here, $\gamma (N) = sin^{-1}[sin(.409)sin(D(N))]$ is known as the declination angle and is calculated from the angle of the Earth's axis and a metric $D(N) = 360(N - 81)/360$ where $N \in [1, 365]$ is the day of the year. $La \in [0, \frac{\pi}{2}]$ is the latitude of the PV module in radians. $\alpha = .524$ corresponds to whether the panel faces East or West and $\beta = .785$ describes the angle between the panel and the horizon; these values were supplied as assumptions. Finally, the hour angle $w(t, N)$ accounts for the angle of sunlight given the rotation of the Earth. 
+Here, $\gamma (N) = sin^{-1}[sin(.409)sin(D(N))]$ is known as the declination angle and is calculated from the angle of the Earth's axis and a metric $D(N) = 360(N - 81)/360$ where $N \in [1, 365]$ is the day of the year [@miozzo_2014, p. 689]. $La \in [0, \frac{\pi}{2}]$ is the latitude of the PV module in radians [@miozzo_2014, p. 689]. $\alpha = .524$ corresponds to whether the panel faces East or West and $\beta = .785$ describes the angle between the panel and the horizon [@miozzo_2014, p. 689].
+The constants $\alpha$ and $\beta$
+were supplied as assumptions based on the location of the NSRDB
+data [@miozzo_2014, p. 691].
+Finally, the hour angle $\omega(t, N)$ accounts for the angle of sunlight given the rotation of the Earth [@miozzo_2014, p. 689]. 
 $$
 \begin{aligned}
 w(t,N) &= 15 (AST(t,N) - 12) \\
@@ -108,36 +175,35 @@ AST(t,N) &= t + \Delta t + ET(N) \\
 ET(N) &= [9.87sin(2D(N)) - 7.53cos(D(N)) - 1.5sin(D(N))] / 60
 \end{aligned}
 $$
-Here, $AST(t,N) \in [0,24]$ is the apparent solar time relative to the sun and is calculated as an adjustment to the current time $t$ based on longitude $Lo$, an offset from the coordinated universal time $UTC_{off}$, and the equation of time $ET(N)$. The above calculations produce results in degrees but values were switched to radians before trigonometric functions were applied. Ultimately, $I_{eff} \propto I_{sun} cos \theta(t, N)$ resulted from our astronomical adjustments and was used for PV module calculations. 
+Here, $AST(t,N) \in [0,24]$ is the apparent solar time relative to the sun and is calculated as an adjustment to the current time $t$ based on longitude $Lo$, an offset from the coordinated universal time $UTC_{off}$, and the equation of time $ET(N)$ [@miozzo_2014, p. 689].
+The above calculations produce results in degrees but values were switched to radians before trigonometric functions were applied.
+Ultimately, $I_{eff} \propto I_{sun} cos \theta(t, N)$ resulted from our astronomical adjustments and was used for PV module
+calculations [@miozzo_2014, p. 689]. 
 
 ## PV Module
 
-Within the PV module, effective irradiance is translated into output current but the entire process is regulated by an attached power processor that ensure that the maximum power is extracted. It does this by testing a range of open circuit voltages $v_{oc}$ between zero and an assumed maximum $v_{oc} = 1.8$ on the PV module's I-V curve which describes how current and voltage vary together for each solar cell in the module. Here, the I-V curve is given by 
+Within the PV module, effective irradiance is translated into output current
+but the entire process is regulated by an attached power processor that ensure
+that the maximum power is extracted. It does this by testing a range of open
+circuit voltages $v_{oc}$ between zero and an assumed maximum $v_{oc} = 1.8$ on
+the PV module's I-V curve which describes how current and voltage vary together
+for each solar cell in the module [@miozzo_2014, p. 691].
+Here, the I-V curve is given by 
 $$
 i_{out} = i_{l} - i_{o}[e^{\frac{qv}{n \kappa T}} - 1]
 $$ 
-with constants $q = 1.6*10^{-19}$ and $\kappa = 1.38 * 10^{-23}$. The light-generated current $i_{l}(t,N) = .0005 I_{eff}(t,N)$ which adjusts $I_{eff}$ for the assumed short circuit current $i_{sc} = 5$ and a radiation rate factor. With a leakage factor $i_{o}$ and the ambient temperature $T$ in degrees Kelvin, $i_{out}$ can be calculated for various voltage values. The combined power of the module is then calculated by 
+with constants $q = 1.6*10^{-19}$ and $\kappa = 1.38 * 10^{-23}$. The light-generated current $i_{l}(t,N) = .0005 I_{eff}(t,N)$ which adjusts $I_{eff}$ for the assumed short circuit current $i_{sc} = 5$ and a radiation rate factor [@miozzo_2014, p. 691].
+With a leakage factor $i_{o}$ and the ambient temperature $T$ in degrees Kelvin, $i_{out}$ can be calculated for various voltage values. The combined power of the module is then calculated by 
 $$
 P = n_{p} n_{s} max\{i_{out} v\}
 $$ 
-where $n_{p} = 6$ is the assumed number of parallel-wired solar cells in the module and $n_{s} = 6$ is the assumed number of series-wired solar cells in the module. A final conversion efficiency factor $\eta = .211$ is applied and $P'_{max} = \eta P_{max}$ is returned. 
-
-# Data filtering
-
-```{r filter}
-HOUR_WINDOW <- 11:16
-df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
-filtered_current_hist <- ggplot() +
-  geom_histogram(aes(x = df_high_irradiance$current_out, y = ..density..), binwidth = .0025) +
-  theme_bw() +
-  labs(title='Distribution of Current Outputs', subtitle='Restricted to high irradiance hours of the day', 
-       x = 'Current Output', y = 'Density')
-print(filtered_current_hist)
-```
+where $n_{p} = 6$ is the assumed number of parallel-wired solar cells in the module and $n_{s} = 6$ is the assumed number of series-wired solar cells in the module [@miozzo_2014, p. 691].
+A final conversion efficiency factor $\eta = .211$ is applied and $P'_{max} = \eta P_{max}$ is returned. 
 
 # Bootstrapping
 
-```{r functions}
+
+```{r functions, include=FALSE}
 
 #' Given a dataframe, return a matrix of bootstrap blocks
 #'
@@ -212,21 +278,25 @@ block_ci <- quantile(boot_block_df$boot, c(alpha / 2, 1 - alpha / 2))
 iid_ci <- quantile(boot_iid_df$boot, c(alpha / 2, 1 - alpha / 2))
 
 mean_boot_plot <- ggplot(vis_df) +
-  geom_histogram(aes(x = boot, y = ..density.., fill = type), position = "identity", alpha = .5, color = "black", 
-                 binwidth = .0001) +
+  geom_histogram(aes(x = boot, y = ..density.., fill = type),
+    position = "identity", alpha = .5, color = "black",
+    binwidth = .0001
+  ) +
   # geom_segment(aes(x = block_ci[1], xend = block_ci[2], y = 1250, yend = 1250), color = 'tomato', alpha = .01) +
-  geom_vline(aes(xintercept = block_ci[1]), linetype = 'dashed', color = 'tomato', alpha = .5) +
-  geom_vline(aes(xintercept = block_ci[2]), linetype = 'dashed', color = 'tomato', alpha = .5) +
+  geom_vline(aes(xintercept = block_ci[1]), linetype = "dashed", color = "tomato", alpha = .5) +
+  geom_vline(aes(xintercept = block_ci[2]), linetype = "dashed", color = "tomato", alpha = .5) +
   # geom_segment(aes(x = iid_ci[1], xend = iid_ci[2], y = 1300, yend = 1300), color = 'turquoise3', alpha = .01) +
-  geom_vline(aes(xintercept = iid_ci[1]), linetype = 'dashed', color = 'turquoise3', alpha = .5) +
-  geom_vline(aes(xintercept = iid_ci[2]), linetype = 'dashed', color = 'turquoise3', alpha = .5) +
-  labs(fill = "Bootstrap Type", title='Bootstrapped Current Output', subtitle = 'Percentile confidence intervals given', 
-       x = 'Bootstrap Sample Means', y = 'Density') +
+  geom_vline(aes(xintercept = iid_ci[1]), linetype = "dashed", color = "turquoise3", alpha = .5) +
+  geom_vline(aes(xintercept = iid_ci[2]), linetype = "dashed", color = "turquoise3", alpha = .5) +
+  labs(
+    fill = "Bootstrap Type", title = "Bootstrapped Current Output", subtitle = "Percentile confidence intervals given",
+    x = "Bootstrap Sample Means", y = "Density"
+  ) +
   theme_bw()
 ggsave("./images/mean_boot_plot.png", make_plot_for_pres(mean_boot_plot), width = 16, height = 12)
 ```
 
-```{r}
+```{r, include=FALSE}
 # rough MC coverage estimate assuming dependent bootstrap distribution as a null
 B <- 10000
 n <- nrow(boot_block_df)
@@ -242,15 +312,15 @@ sample <- rnorm(B, mu, sigma)
 sum(sample >= lower & sample <= upper) / n
 ```
 
-```{r sampling}
+```{r sampling, include=FALSE}
 time_series_irradiance <- function(df, variable, var_name, hour_range) {
   newdf <- df %>%
     mutate(date = lubridate::make_datetime(Year, Month, Day, Hour, Minute)) %>%
     # each day in this dataset is subset from 11:16, meaning there is 6 hours per day
     head(hour_range * 6)
-  
-  blocks <- c(newdf$date[seq(1,length(newdf$date), hour_range)])
- 
+
+  blocks <- c(newdf$date[seq(1, length(newdf$date), hour_range)])
+
   ret_plot <- ggplot(newdf) +
     geom_line(aes_string(x = "date", y = variable)) +
     geom_vline(xintercept = blocks, colour = "red") +
@@ -293,6 +363,42 @@ ggsave("./images/day_plot_current.png", make_plot_for_pres(day_plot_current))
 
 # dpeak <- c(B1,B2,B3)
 ```
+
+# Future Work
+
+For future work, it would be good to examine the wider implications
+of the inferential results explored in this paper.
+The model paper for this project simulated results for small solar panels
+in a specific configuration,
+making it hard to generalize the results to any meaningful solar array.
+However, if the results could be generalized,
+it would be good to see how current output based on solar irradiance
+fits into a larger model of uncertainty surrounding renewable energy generation.
+One example of such an approach would be @constante_2018,
+in which PV output simulated from solar irradiance
+is used in conjunction with other sources of of uncertainty.
+The estimates of PV output in this paper are only part
+of the story with respect to uncertainty in PV power generation.
+Other relevant types of uncertainty are uncertainty of energy demand,
+uncertainty in personal PV module placement on the grid,
+and uncertainty in the power generation of other renewable energy
+sources, to name a few (@constante_2018).
+
+\newpage
+
+# References
+
+<div id="refs"></div>
+
+\newpage
+
+# Appendix
+
+```{r show-code, ref.label = all_labels(), echo = TRUE, eval = FALSE}
+
+```
+
+
 
 - We chose our initial paper because of its use of Monte Carlo. After working with it for a little it was brought to our attention that Monte Carlo was used in conjunction with a backward/forward sweep method in order to calculate the pdf. After some confusion it was decided to switch to another paper dealing with the same data/motivation but without said methods (including Monte Carlo).
 - Luckily, the week after we switched papers we begun learning about bootstrapping, a way to sample from our data while taking into consideration our time change. 

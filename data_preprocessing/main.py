@@ -46,7 +46,7 @@ def main():
         axis=1,
     )
 
-    df.to_csv(PROCESSED_CSV)
+    df.to_csv(PROCESSED_CSV, index=False)
 
 if __name__ == "__main__":
     main()
