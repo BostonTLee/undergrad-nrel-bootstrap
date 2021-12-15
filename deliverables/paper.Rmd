@@ -435,6 +435,8 @@ while still allowing resampling.
 
 # Results
 
+A percentile bootstrap confidence interval was calculated for both the dependent and *iid* estimates. This method was chosen for its simplicity and for the fact that the bootstrapped sampling distributions agreed with the assumption of normality under central limit theorem. Performing an *iid* bootstrap on dependent data should yield an artificially narrow confidence interval and this belief was supported by the relative widths of the resulting intervals. 
+
 # Future Work
 
 For future work, it would be good to examine the wider implications
