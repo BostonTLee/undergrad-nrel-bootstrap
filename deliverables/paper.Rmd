@@ -39,7 +39,45 @@ make_plot_for_pres <- function(plot) {
 
 # Background
 
-TODO
+
+This project began with the search for a research paper
+utilizing the process of Monte Carlo sampling or other 
+statistcal computing methods. We landed on a few papers 
+that did exatcly this, one titled, "SolarStat: Modeling 
+Photovoltaic Sources through Stochastic Markov Processes". 
+Instead of comparing our works of Monte Carlo simulations 
+we were able to utilize a more recent topic discussed in class.
+This of course was bootsrapping, a topic we didn't get too in
+depth about; however, everything needed to know will be explained 
+later on in the paper. Regarding our choice of articles, it was a
+question of interest and importance. During the last decade the world
+has seen a massive uptick in renewable energy pushes. With this 
+new wave of renewables and the rather large misunderstanding of their
+total power we decided it would be interesting to look into solar and 
+what it was all about. The big question being asked regarding
+solar power is whether or not it is worth heading the initial cost
+of set up and general mantienance. Many websites inform users of 
+just this, according to the Solar.com Learning Center, the average
+solar panel net cost is $2,700 per 1.5 kilowatt-hour system (@solar.com). 
+The biggest upside to solar panels is being able to slice down your 
+energy bill, and eventually have it pay for itself. In order to 
+calculate a solar panels net output experts recommend looking at three things. 
+1. Determine your locations peak sun hours (average US around 4 hours/day)
+2. Determine your energy compensation (average $0.03/kilowatt-hour (kWh))
+3. Determine your solar panels net energy output
+Once you have calculated these three numbers it is as easy as 
+multiplying them together to receive your daily solar panel 
+compensation (@energysage). As an example Energy Sage looked at 
+California receiving 5 peak hours of sunlight a day with a single 
+solar panel producing 290 watts/hour. Daily, this panel will produce 
+around 1.5 kWh per day yielding the owner a rough compensation 
+of $16.42 a year.  
+
+This paper looks at data from a 12 year period to determine the current 
+output of a specified city. It can be used to determine 
+on a month by month basis if a location produces a sufficient amount 
+of current from a solar panel. Providing customers with an idea on 
+whether or not they should make the investment that is solar.
 
 # Data
 
