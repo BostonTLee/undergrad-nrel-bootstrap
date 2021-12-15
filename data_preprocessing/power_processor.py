@@ -56,9 +56,8 @@ class PowerProcessor:
         vec_to_be_maximized = (
             n_parallel * n_series * np.multiply(current_vec, voltage_vec)
         )
-        max_index = np.argmax(vec_to_be_maximized)
-        # Return the *current* corresponding to the max power
-        return current_vec.item(max_index)
+        max_power = np.amax(vec_to_be_maximized)
+        return max_power
 
     @classmethod
     def estimated_power(

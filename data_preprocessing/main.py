@@ -7,7 +7,7 @@ from pv_module import PVModule as pvm
 
 def main():
     SOLAR_IRRADIANCE = "irradiance_eff"
-    CURRENT_OUTPUT = "current_out"
+    POWER_OUTPUT = "power_out"
     RAW_CSV = "../data/raw/irradiance_full_raw.csv"
     PROCESSED_CSV =  "../data/final/irradiance_full_final.csv"
 
@@ -32,11 +32,11 @@ def main():
         axis=1,
     )
 
-    df[CURRENT_OUTPUT] = df.apply(
+    df[POWER_OUTPUT] = df.apply(
         lambda row: pp.estimated_power(
             ideality=1.5,
             temperature=row["Temperature"],
-            sc_current_module=5,
+            sc_power_module=5,
             i_eff=row[SOLAR_IRRADIANCE],
             n_parallel=6,
             n_series=6,
