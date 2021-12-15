@@ -36,7 +36,7 @@ def main():
         lambda row: pp.estimated_power(
             ideality=1.5,
             temperature=row["Temperature"],
-            sc_power_module=5,
+            sc_current_module=5,
             i_eff=row[SOLAR_IRRADIANCE],
             n_parallel=6,
             n_series=6,
