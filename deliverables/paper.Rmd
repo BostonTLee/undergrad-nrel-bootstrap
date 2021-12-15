@@ -2,7 +2,7 @@
 title: "Time Series Bootstrapping For Solar Current"
 author: "Evan Kessler, Adam Kiehl, and Boston Lee"
 date: "2021/12/16"
-output: pdf_document
+output: bookdown::pdf_document2
 bibliography: references.bib
 ---
 
@@ -14,8 +14,13 @@ set.seed(400)
 ```{r libs, include=FALSE, message=FALSE}
 # Import packages
 library(knitr)
+library(bookdown)
 library(tidyverse)
 library(boot)
+```
+
+```{r knitr-opts}
+knitr::opts_chunk$set(fig.pos = "t", fig.align = 'center', out.width = "75%", out.extra = "")
 ```
 
 ```{r data, include=FALSE, message=FALSE, warning=FALSE}
@@ -63,77 +68,6 @@ Because ETR and GHI are closely related,
 we felt that the data was acceptable for a
 replication of the process in @miozzo_2014,
 with the caveat that the calculations may only be approximate.
-
-## Data filtering
-
-```{r filter, include=FALSE}
-HOUR_WINDOW <- 11:16
-df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
-filtered_current_hist <- ggplot() +
-  geom_histogram(aes(x = df_high_irradiance$current_out, y = ..density..), binwidth = .0025) +
-  theme_bw() +
-  labs(
-    title = "Distribution of Current Outputs", subtitle = "Restricted to high irradiance hours of the day",
-    x = "Current Output", y = "Density"
-  )
-print(filtered_current_hist)
-```
-
-# EDA
-
-```{r timeseries, include=FALSE, warning=FALSE}
-
-#' Plot a timeseries of a single variable
-#'
-#' @param df A dataframe containing `variable`
-#' @param variable A string referring to a column of `df`
-#' @param var_name The human-readable name of `variable`, for labelling
-#' @param n_days The number of days (starting from the
-#'    beginning of the data) to plot
-#' @return A ggplot object of a timeseries of `variable` for `n_days` days
-time_series_of_var <- function(df, variable, var_name, n_days) {
-  ret_plot <- df %>%
-    mutate(date = lubridate::make_datetime(Year, Month, Day, Hour, Minute)) %>%
-    head(24 * n_days) %>%
-    ggplot() +
-    geom_line(aes_string(x = "date", y = variable)) +
-    xlab("Date") +
-    ylab(var_name) +
-    theme_bw()
-  return(ret_plot)
-}
-
-time_series_ghi <- time_series_of_var(df, "GHI", "GHI", 6)
-time_series_current <- time_series_of_var(df, "current_out", "Output current", 6)
-ggsave("./images/time_series_ghi.png", make_plot_for_pres(time_series_ghi))
-ggsave("./images/time_series_current.png", make_plot_for_pres(time_series_current))
-```
-
-```{r hour-plot, include=FALSE}
-
-#' Plot the values of `variable` at each hour of the day
-#'
-#' @param df A dataframe containing `variable`
-#' @param variable A string referring to a column of `df`
-#' @param var_name The human-readable name of `variable`, for labelling
-#' @return A ggplot object of a boxplot of `variable` segmented by hour
-hour_plot_of_var <- function(df, variable, var_name) {
-  df$Hour <- as.factor(df$Hour)
-  ret_plot <- df %>%
-    ggplot() +
-    geom_boxplot(aes_string(x = "Hour", y = variable)) +
-    xlab("Hour (0-23)") +
-    ylab(paste("Distribution of", var_name)) +
-    scale_x_discrete(breaks = seq(0, 23, 2)) +
-    theme_bw()
-  return(ret_plot)
-}
-
-hour_plot_ghi <- hour_plot_of_var(df, "GHI", "GHI")
-hour_plot_current <- hour_plot_of_var(df, "current_out", "output current")
-ggsave("./images/hour_plot_ghi.png", make_plot_for_pres(hour_plot_ghi))
-ggsave("./images/hour_plot_current.png", make_plot_for_pres(hour_plot_current))
-```
 
 # Preprocessing
 
@@ -201,6 +135,177 @@ where $n_{p} = 6$ is the assumed number of parallel-wired solar cells in the mod
 A final conversion efficiency factor $\eta = .211$ is applied and $P'_{max} = \eta P_{max}$ is returned.
 
 # Methods
+
+## Data filtering
+
+```{r filter, include=FALSE}
+HOUR_WINDOW <- 11:16
+df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
+filtered_current_hist <- ggplot() +
+  geom_histogram(aes(x = df_high_irradiance$current_out, y = ..density..), binwidth = .0025) +
+  theme_bw() +
+  labs(
+    title = "Distribution of Current Outputs", subtitle = "Restricted to high irradiance hours of the day",
+    x = "Current Output", y = "Density"
+  )
+print(filtered_current_hist)
+```
+
+## Bootstrapping
+
+
+The main goal of this paper is to provide point and interval
+estimates for average (simulated) current output
+based on solar irradiance.
+Given that the sample size is large,
+a simple average may have been sufficient.
+However, we were interested in characterizing
+the difference in performance between
+standard bootstrapping methods and dependent bootstrapping methods.
+The current output provides a good test case for this.
+Both the preprocessed and postprocessed currents are not independent data;
+values of either irradiance or current output
+depend on surrounding values in time.
+As such, standard methods for bootstrapping should be
+less effective at estimating the true mean irradiance output.
+
+The standard (*iid*) bootstrap procedure begins with
+the assumption that our original sample consists of
+independent and identically distributed draws from a distribution.
+The univariate bootstrap then provides a distribution of bootstrap
+estimates for a statistic,
+$\hat{\theta}^{(1)}, \ldots, \{\hat{\theta}^{(B)}$,
+where $B$ is the number of bootstrap replicates
+and $\theta$ is a statistic of interest.
+For our purposes, $\theta$ is simply the average current output
+for our specific solar module configuration.
+The *iid* bootstrap constructs the distribution of bootstrap estimates
+as follows:
+
+For $i = 1, \ldots, B$:
+
+1. Sample $n$ values $x_j$ from the data with replacement
+1. Calculate
+   $\hat{\theta}^{(i)} = \frac{1}{n} \sum_{j = 1}^{n} x_j$
+   for the bootstrap sample.
+
+
+In contrast, a dependent bootstrap does not assume
+the original sample was independent and identically distributed.
+To capture the dependence in the data,
+we chose to use a nonparametric non-overlapping block bootstrap.
+This is because during the data filtering step,
+we excluded nighttime values from the dataset.
+This meant we essentially had predefined,
+mostly independent blocks from which to sample:
+the daytime current values for each day.
+Given that our daytime current values for each day
+could be used as non-overlapping blocks,
+our dataset could be seen as a collection
+of $n_B$ blocks.
+
+
+For i = $1, \ldots, B$:
+
+1. Sample $n_B$ blocks (days)
+$\mathcal{B}_{1}, ..., \mathcal{B}_{n_B}$
+from the data with replacement.
+1. Calculate
+   $\hat{\theta}^{(i)} = \frac{1}{n} \sum_{j = 1}^{n} x_j$
+   on a new dataset
+  $\mathcal{B}_{1} \cup \cdots \cup \mathcal{B}_{n_B}$.
+
+
+The new dataset in Step 2
+corresponds to sampling and rearranging days to make
+a new dataset the same size as the original.
+This procedure preserves the dependence within days,
+while still allowing resampling.
+
+A percentile bootstrap confidence interval was calculated for both the
+dependent and *iid* estimates. This method was chosen for its simplicity and
+for the fact that the bootstrapped sampling distributions agreed with the
+assumption of normality under central limit theorem. Performing an *iid*
+bootstrap on dependent data should yield an artificially narrow confidence
+interval and this belief was supported by the relative widths of the resulting
+intervals. 
+
+# Results
+
+## Descriptive Statistics
+
+```{r timeseries, include=FALSE, warning=FALSE}
+
+#' Plot a timeseries of a single variable
+#'
+#' @param df A dataframe containing `variable`
+#' @param variable A string referring to a column of `df`
+#' @param var_name The human-readable name of `variable`, for labelling
+#' @param n_days The number of days (starting from the
+#'    beginning of the data) to plot
+#' @return A ggplot object of a timeseries of `variable` for `n_days` days
+time_series_of_var <- function(df, variable, var_name, n_days) {
+  ret_plot <- df %>%
+    mutate(date = lubridate::make_datetime(Year, Month, Day, Hour, Minute)) %>%
+    head(24 * n_days) %>%
+    ggplot() +
+    geom_line(aes_string(x = "date", y = variable)) +
+    xlab("Date") +
+    ylab(var_name) +
+    theme_bw()
+  return(ret_plot)
+}
+
+time_series_ghi <- time_series_of_var(df, "GHI", "GHI", 6)
+time_series_current <- time_series_of_var(df, "current_out", "Output current", 6)
+ggsave("./images/time_series_ghi.png", make_plot_for_pres(time_series_ghi))
+ggsave("./images/time_series_current.png", make_plot_for_pres(time_series_current))
+```
+
+```{r hour-plot, include=FALSE}
+
+#' Plot the values of `variable` at each hour of the day
+#'
+#' @param df A dataframe containing `variable`
+#' @param variable A string referring to a column of `df`
+#' @param var_name The human-readable name of `variable`, for labelling
+#' @return A ggplot object of a boxplot of `variable` segmented by hour
+hour_plot_of_var <- function(df, variable, var_name) {
+  df$Hour <- as.factor(df$Hour)
+  ret_plot <- df %>%
+    ggplot() +
+    geom_boxplot(aes_string(x = "Hour", y = variable)) +
+    xlab("Hour (0-23)") +
+    ylab(paste("Distribution of", var_name)) +
+    scale_x_discrete(breaks = seq(0, 23, 2)) +
+    theme_bw()
+  return(ret_plot)
+}
+
+hour_plot_ghi <- hour_plot_of_var(df, "GHI", "GHI")
+hour_plot_current <- hour_plot_of_var(df, "current_out", "output current")
+ggsave("./images/hour_plot_ghi.png", make_plot_for_pres(hour_plot_ghi))
+ggsave("./images/hour_plot_current.png", make_plot_for_pres(hour_plot_current))
+```
+
+```{r ghi-ts, fig.cap="Time series of GHI values for the first six days in the dataset", echo=FALSE}
+print(time_series_ghi)
+```
+
+```{r current-ts, fig.cap="Time series of simulated current values for the first six days in the dataset.", echo=FALSE}
+print(time_series_current)
+```
+
+```{r ghi-hour-boxplot, fig.cap="Distribution of GHI at each hour for the entire unfiltered dataset.", echo=FALSE}
+print(hour_plot_ghi)
+```
+
+```{r current-hour-boxplot, fig.cap="Distribution of GHI at each hour for the entire unfiltered dataset.", echo=FALSE}
+print(hour_plot_current)
+```
+
+
+## Bootstrapping
 
 ```{r functions, include=FALSE}
 
@@ -295,21 +400,25 @@ mean_boot_plot <- ggplot(vis_df) +
 ggsave("./images/mean_boot_plot.png", make_plot_for_pres(mean_boot_plot), width = 16, height = 12)
 ```
 
-```{r, include=FALSE}
-# rough MC coverage estimate assuming dependent bootstrap distribution as a null
-B <- 10000
-n <- nrow(boot_block_df)
-
-lower <- as.numeric(iid_ci[1])
-upper <- as.numeric(iid_ci[2])
-
-mu <- mean(boot_block_df$boot)
-sigma <- sd(boot_block_df$boot)
-
-sample <- rnorm(B, mu, sigma)
-
-sum(sample >= lower & sample <= upper) / n
+```{r mean-boot-plot, fig.cap="Distributions of bootstrap mean simulated current for both iid and block bootstrapping methods. Percentile 95 percent bootstrap confidence intervals for mean simulated current overlayed.", echo=FALSE}
+print(mean_boot_plot)
 ```
+
+```{r bootstrap-ci, echo=FALSE}
+bootstrap_ci_table <- rbind(
+c("iid", paste("(", round(iid_ci[1],3),",", round(iid_ci[2],3), ")")),
+c("Block", paste("(", round(block_ci[1],3),",", round(block_ci[2], 3), ")"))
+)
+colnames(bootstrap_ci_table) <- c("Bootstrap Method", "95% CI")
+rownames(bootstrap_ci_table) <- c()
+
+bootstrap_ci_table %>% kable(booktabs = TRUE,
+caption="95% confidence intervals for the mean simulated current, as generated by each of the two bootstrapping methods.")
+
+
+```
+
+
 
 ```{r sampling, include=FALSE}
 time_series_irradiance <- function(df, variable, var_name, hour_range) {
@@ -362,80 +471,6 @@ ggsave("./images/day_plot_current.png", make_plot_for_pres(day_plot_current))
 
 # dpeak <- c(B1,B2,B3)
 ```
-
-The main goal of this paper is to provide point and interval
-estimates for average (simulated) current output
-based on solar irradiance.
-Given that the sample size is large,
-a simple average may have been sufficient.
-However, we were interested in characterizing
-the difference in performance between
-standard bootstrapping methods and dependent bootstrapping methods.
-The current output provides a good test case for this.
-Both the preprocessed and postprocessed currents are not independent data;
-values of either irradiance or current output
-depend on surrounding values in time.
-As such, standard methods for bootstrapping should be
-less effective at estimating the true mean irradiance output.
-
-The standard (*iid*) bootstrap procedure begins with
-the assumption that our original sample consists of
-independent and identically distributed draws from a distribution.
-The univariate bootstrap then provides a distribution of bootstrap
-estimates for a statistic,
-$\hat{\theta}^{(1)}, \ldots, \{\hat{\theta}^{(B)}$,
-where $B$ is the number of bootstrap replicates
-and $\theta$ is a statistic of interest.
-For our purposes, $\theta$ is simply the average current output
-for our specific solar module configuration.
-The *iid* bootstrap constructs the distribution of bootstrap estimates
-as follows:
-
-For $i = 1, \ldots, B$:
-
-1. Sample $n$ values $x_j$ from the data with replacement
-1. Calculate
-   $\hat{\theta}^{(i)} = \frac{1}{n} \sum_{j = 1}^{n} x_j$
-   for the bootstrap sample.
-
-
-In contrast, a dependent bootstrap does not assume
-the original sample was independent and identically distributed.
-To capture the dependence in the data,
-we chose to use a nonparametric non-overlapping block bootstrap.
-This is because during the data filtering step,
-we excluded nighttime values from the dataset.
-This meant we essentially had predefined,
-mostly independent blocks from which to sample:
-the daytime current values for each day.
-Given that our daytime current values for each day
-could be used as non-overlapping blocks,
-our dataset could be seen as a collection
-of $n_B$ blocks.
-
-
-For i = $1, \ldots, B$:
-
-1. Sample $n_B$ blocks (days)
-$\mathcal{B}_{1}, ..., \mathcal{B}_{n_B}$
-from the data with replacement.
-1. Calculate
-   $\hat{\theta}^{(i)} = \frac{1}{n} \sum_{j = 1}^{n} x_j$
-   on a new dataset
-  $\mathcal{B}_{1} \cup \cdots \cup \mathcal{B}_{n_B}$.
-
-
-The new dataset in Step 2
-corresponds to sampling and rearranging days to make
-a new dataset the same size as the original.
-This procedure preserves the dependence within days,
-while still allowing resampling.
-
-
-
-# Results
-
-A percentile bootstrap confidence interval was calculated for both the dependent and *iid* estimates. This method was chosen for its simplicity and for the fact that the bootstrapped sampling distributions agreed with the assumption of normality under central limit theorem. Performing an *iid* bootstrap on dependent data should yield an artificially narrow confidence interval and this belief was supported by the relative widths of the resulting intervals. 
 
 # Future Work
 
