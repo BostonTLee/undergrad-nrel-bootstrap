@@ -58,12 +58,12 @@ what it was all about. The big question being asked regarding
 solar power is whether or not it is worth heading the initial cost
 of set up and general mantienance. Many websites inform users of 
 just this, according to the Solar.com Learning Center, the average
-solar panel net cost is $2,700 per 1.5 kilowatt-hour system (@solar.com). 
+solar panel net cost is \$2,700 per 1.5 kilowatt-hour system (@solar.com). 
 The biggest upside to solar panels is being able to slice down your 
 energy bill, and eventually have it pay for itself. In order to 
 calculate a solar panels net output experts recommend looking at three things. 
 1. Determine your locations peak sun hours (average US around 4 hours/day)
-2. Determine your energy compensation (average $0.03/kilowatt-hour (kWh))
+2. Determine your energy compensation (average \$0.03/kilowatt-hour (kWh))
 3. Determine your solar panels net energy output
 Once you have calculated these three numbers it is as easy as 
 multiplying them together to receive your daily solar panel 
@@ -71,13 +71,18 @@ compensation (@energysage). As an example Energy Sage looked at
 California receiving 5 peak hours of sunlight a day with a single 
 solar panel producing 290 watts/hour. Daily, this panel will produce 
 around 1.5 kWh per day yielding the owner a rough compensation 
-of $16.42 a year.  
+of \$16.42 a year.
 
-This paper looks at data from a 12 year period to determine the current 
-output of a specified city. It can be used to determine 
-on a month by month basis if a location produces a sufficient amount 
-of current from a solar panel. Providing customers with an idea on 
-whether or not they should make the investment that is solar.
+This paper looks at data from a 12 year period to determine the power 
+output of a small grid of solar panels
+located in Los Angeles, California,
+based on solar radiation data.
+The information gleaned from simulating power output
+can determine if,
+on an overall basis, a location produces a sufficient amount 
+of power from a solar panel.
+This gives customers information to determine
+whether or not they should make an investment in solar energy.
 
 # Data
 
@@ -85,7 +90,6 @@ The data used was from the National Solar Radiation Database (NSRDB),
 provided by the National Renewable Energy Laboratory
 (NREL) (@nsrdb).
 The data was acquired via the NSRDB API (@nsrdb_api).
-
 
 The model paper for this project, @miozzo_2014
 used data cited from the NSRDB.
@@ -109,7 +113,7 @@ with the caveat that the calculations may only be approximate.
 
 # Preprocessing
 
-To translate raw irradiance data into meaningful current data, several steps
+To translate raw irradiance data into meaningful power data, several steps
 had to be taken to simulate the electrical workings of a real PV module. First,
 adjustments had to be made to account for the fact that an imperfect amount of
 irradiance actually reaches a PV module for capture. Then, effective irradiance
@@ -179,30 +183,31 @@ A final conversion efficiency factor $\eta = .211$ is applied and $P'_{max} = \e
 ```{r filter, include=FALSE}
 HOUR_WINDOW <- 11:16
 df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
-filtered_current_hist <- ggplot() +
-  geom_histogram(aes(x = df_high_irradiance$current_out, y = ..density..), binwidth = .0025) +
+filtered_power_hist <- ggplot() +
+  geom_histogram(aes(x = df_high_irradiance$power_out, y = ..density..), binwidth = .0025) +
   theme_bw() +
   labs(
-    title = "Distribution of Current Outputs", subtitle = "Restricted to high irradiance hours of the day",
-    x = "Current Output", y = "Density"
+    title = "Distribution of Power Outputs", subtitle = "Restricted to high irradiance hours of the day",
+    x = "Power Output", y = "Density"
   )
-print(filtered_current_hist)
+print(filtered_power_hist)
 ```
 
 ## Bootstrapping
 
 
 The main goal of this paper is to provide point and interval
-estimates for average (simulated) current output
+estimates for average (simulated) power output
 based on solar irradiance.
 Given that the sample size is large,
 a simple average may have been sufficient.
 However, we were interested in characterizing
 the difference in performance between
 standard bootstrapping methods and dependent bootstrapping methods.
-The current output provides a good test case for this.
-Both the preprocessed and postprocessed currents are not independent data;
-values of either irradiance or current output
+The power output provides a good test case for this.
+Both the preprocessed GHI
+and postprocessed power outputs are not independent data;
+values of either irradiance or power output
 depend on surrounding values in time.
 As such, standard methods for bootstrapping should be
 less effective at estimating the true mean irradiance output.
@@ -215,7 +220,7 @@ estimates for a statistic,
 $\hat{\theta}^{(1)}, \ldots, \{\hat{\theta}^{(B)}$,
 where $B$ is the number of bootstrap replicates
 and $\theta$ is a statistic of interest.
-For our purposes, $\theta$ is simply the average current output
+For our purposes, $\theta$ is simply the average power output
 for our specific solar module configuration.
 The *iid* bootstrap constructs the distribution of bootstrap estimates
 as follows:
@@ -236,8 +241,8 @@ This is because during the data filtering step,
 we excluded nighttime values from the dataset.
 This meant we essentially had predefined,
 mostly independent blocks from which to sample:
-the daytime current values for each day.
-Given that our daytime current values for each day
+the daytime power values for each day.
+Given that our daytime power values for each day
 could be used as non-overlapping blocks,
 our dataset could be seen as a collection
 of $n_B$ blocks.
@@ -295,9 +300,9 @@ time_series_of_var <- function(df, variable, var_name, n_days) {
 }
 
 time_series_ghi <- time_series_of_var(df, "GHI", "GHI", 6)
-time_series_current <- time_series_of_var(df, "current_out", "Output current", 6)
+time_series_power <- time_series_of_var(df, "power_out", "Output power", 6)
 ggsave("./images/time_series_ghi.png", make_plot_for_pres(time_series_ghi))
-ggsave("./images/time_series_current.png", make_plot_for_pres(time_series_current))
+ggsave("./images/time_series_power.png", make_plot_for_pres(time_series_power))
 ```
 
 ```{r hour-plot, include=FALSE}
@@ -321,25 +326,25 @@ hour_plot_of_var <- function(df, variable, var_name) {
 }
 
 hour_plot_ghi <- hour_plot_of_var(df, "GHI", "GHI")
-hour_plot_current <- hour_plot_of_var(df, "current_out", "output current")
+hour_plot_power <- hour_plot_of_var(df, "power_out", "Output Power")
 ggsave("./images/hour_plot_ghi.png", make_plot_for_pres(hour_plot_ghi))
-ggsave("./images/hour_plot_current.png", make_plot_for_pres(hour_plot_current))
+ggsave("./images/hour_plot_power.png", make_plot_for_pres(hour_plot_power))
 ```
 
 ```{r ghi-ts, fig.cap="Time series of GHI values for the first six days in the dataset", echo=FALSE}
 print(time_series_ghi)
 ```
 
-```{r current-ts, fig.cap="Time series of simulated current values for the first six days in the dataset.", echo=FALSE}
-print(time_series_current)
+```{r power-ts, fig.cap="Time series of simulated power values for the first six days in the dataset.", echo=FALSE}
+print(time_series_power)
 ```
 
 ```{r ghi-hour-boxplot, fig.cap="Distribution of GHI at each hour for the entire unfiltered dataset.", echo=FALSE}
 print(hour_plot_ghi)
 ```
 
-```{r current-hour-boxplot, fig.cap="Distribution of GHI at each hour for the entire unfiltered dataset.", echo=FALSE}
-print(hour_plot_current)
+```{r power-hour-boxplot, fig.cap="Distribution of GHI at each hour for the entire unfiltered dataset.", echo=FALSE}
+print(hour_plot_power)
 ```
 
 
@@ -366,7 +371,7 @@ make_blocks_from_df <- function(df) {
   stop <- length_of_block
   for (i in 1:number_of_blocks) {
     # blocks[i, ] <- df$current_out[(i - 1) * length_of_block + 1 : (i * length_of_block)]
-    blocks[i, ] <- df$current_out[start:stop]
+    blocks[i, ] <- df$power_out[start:stop]
     start <- start + length_of_block
     stop <- stop + length_of_block
   }
@@ -403,8 +408,8 @@ medianv <- function(data, idx) {
 }
 
 iid_bootstrap_estimates_from_df <- function(df, B = 10000) {
-  boot_current <- boot(df$current_out, meanv, B)
-  return(boot_current$t)
+  boot_power <- boot(df$power_out, meanv, B)
+  return(boot_power$t)
 }
 
 boot_block <- block_bootstrap_estimates_from_df(df_high_irradiance)
@@ -421,8 +426,7 @@ iid_ci <- quantile(boot_iid_df$boot, c(alpha / 2, 1 - alpha / 2))
 
 mean_boot_plot <- ggplot(vis_df) +
   geom_histogram(aes(x = boot, y = ..density.., fill = type),
-    position = "identity", alpha = .5, color = "black",
-    binwidth = .0001
+    position = "identity", alpha = .5, color = "black"
   ) +
   # geom_segment(aes(x = block_ci[1], xend = block_ci[2], y = 1250, yend = 1250), color = 'tomato', alpha = .01) +
   geom_vline(aes(xintercept = block_ci[1]), linetype = "dashed", color = "tomato", alpha = .5) +
@@ -431,14 +435,14 @@ mean_boot_plot <- ggplot(vis_df) +
   geom_vline(aes(xintercept = iid_ci[1]), linetype = "dashed", color = "turquoise3", alpha = .5) +
   geom_vline(aes(xintercept = iid_ci[2]), linetype = "dashed", color = "turquoise3", alpha = .5) +
   labs(
-    fill = "Bootstrap Type", title = "Bootstrapped Current Output", subtitle = "Percentile confidence intervals given",
+    fill = "Bootstrap Type", title = "Bootstrapped Power Output", subtitle = "Percentile confidence intervals given",
     x = "Bootstrap Sample Means", y = "Density"
   ) +
   theme_bw()
 ggsave("./images/mean_boot_plot.png", make_plot_for_pres(mean_boot_plot), width = 16, height = 12)
 ```
 
-```{r mean-boot-plot, fig.cap="Distributions of bootstrap mean simulated current for both iid and block bootstrapping methods. Percentile 95 percent bootstrap confidence intervals for mean simulated current overlayed.", echo=FALSE}
+```{r mean-boot-plot, fig.cap="Distributions of bootstrap mean simulated power for both iid and block bootstrapping methods. Percentile 95 percent bootstrap confidence intervals for mean simulated power overlayed.", echo=FALSE}
 print(mean_boot_plot)
 ```
 
@@ -451,7 +455,7 @@ colnames(bootstrap_ci_table) <- c("Bootstrap Method", "95% CI")
 rownames(bootstrap_ci_table) <- c()
 
 bootstrap_ci_table %>% kable(booktabs = TRUE,
-caption="95% confidence intervals for the mean simulated current, as generated by each of the two bootstrapping methods.")
+caption="95% confidence intervals for the mean simulated power, as generated by each of the two bootstrapping methods.")
 
 
 ```
@@ -476,21 +480,21 @@ time_series_irradiance <- function(df, variable, var_name, hour_range) {
   return(ret_plot)
 }
 
-sixhr_plot_current <- time_series_irradiance(df_high_irradiance, "current_out", "Current Output", 6)
-ggsave("./images/sixhr_plot_current.png", make_plot_for_pres(sixhr_plot_current))
+sixhr_plot_power <- time_series_irradiance(df_high_irradiance, "power_out", "Power Output", 6)
+ggsave("./images/sixhr_plot_power.png", make_plot_for_pres(sixhr_plot_power))
 
 HOUR_WINDOW <- 8:19
 df_more_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
-filtered_current_hist <- ggplot() +
-  geom_histogram(aes(x = df_high_irradiance$current_out)) +
+filtered_power_hist <- ggplot() +
+  geom_histogram(aes(x = df_high_irradiance$power_out)) +
   theme_bw()
-print(filtered_current_hist)
+print(filtered_power_hist)
 
-twelvehr_plot_current <- time_series_irradiance(df_more_irradiance, "current_out", "Current Output", 12)
-ggsave("./images/twelvehr_plot_current.png", make_plot_for_pres(twelvehr_plot_current))
+twelvehr_plot_power <- time_series_irradiance(df_more_irradiance, "power_out", "Power Output", 12)
+ggsave("./images/twelvehr_plot_power.png", make_plot_for_pres(twelvehr_plot_power))
 
-day_plot_current <- time_series_irradiance(df, "current_out", "Current Output", 24)
-ggsave("./images/day_plot_current.png", make_plot_for_pres(day_plot_current))
+day_plot_power <- time_series_irradiance(df, "power_out", "Power Output", 24)
+ggsave("./images/day_plot_power.png", make_plot_for_pres(day_plot_power))
 
 
 # B1 <- df[df$Hour == c(7:10),]$current_output # Hours before peak
@@ -524,7 +528,7 @@ The model paper for this project simulated results for small solar panels
 in a specific configuration,
 making it hard to generalize the results to any meaningful solar array.
 However, if the results could be generalized,
-it would be good to see how current output based on solar irradiance
+it would be good to see how power output based on solar irradiance
 fits into a larger model of uncertainty surrounding renewable energy generation.
 One example of such an approach would be @constante_2018,
 in which PV output simulated from solar irradiance
