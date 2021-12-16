@@ -649,10 +649,6 @@ to find the best areas in the US to began creating large-scale solar plants.
 Finding the best city throughout the US in which NREL holds data on would turn 
 our problem into an optimization one. 
 
-I THINK DISCUSSION AND FUTURE WORK SHOULD BE COMBINED. THEY FLOW INTO EACH OTHER QUITE NICELY. FEEL FREE TO MERGE THEM IF YOU WANT.
-
-# Future Work
-
 For future work, it would be good to examine the wider implications
 of the inferential results explored in this paper.
 The model paper for this project simulated results for small solar panels
