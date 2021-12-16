@@ -612,13 +612,18 @@ that is needed is the peak hours and total average cost/kWh.
 The former can be calculated by setting a lower floor on 
 solar irradiance. Stated on Solar Reviews, 
 "1 peak sun hour" is equal to, "1000 W/m² of sunlight 
-per hour", meaning our length used initially for an hour window 
-would be considered peak hours. Taking this total of `r length(HOUR_WINDOW)` 
+per hour" (@energysage). In our calculations we used an hour window between 
+8am to 4pm, a typical day range where the sun is overhead. A disclaimer,
+some of the values at the beginning and end of the day may not hold 
+exactly greater than our cutoff stated by Solar Reviews, however this range 
+yielded the greatest results of solar irradiance and Wh, some being much larger
+than 1000 W/m^2 and others being just under. Therefore, we are deciding to use 
+this range as our peak hours. Taking this total of `r length(HOUR_WINDOW)` 
 peak hours and our average cost per kilowatt-hour of /$0.03 from before 
 we would find that on average a consumer in Los Angeles can 
 anticipate earning /$`r round(power_out_est_year/1000,2)*.03*length(HOUR_WINDOW)` yearly on one solar panel grid. 
 Knowing this, any resident located in or around the Los Angeles area should
-feel confident in their decision of purchasing a solar panel unit. 
+feel confident in their decision of purchasing a solar panel grid. 
 
 The power estimate generated in this study has practical applications 
 in real-world electrical engineering problems. An allocation must be 
