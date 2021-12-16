@@ -510,6 +510,12 @@ ggsave("./images/day_plot_current.png", make_plot_for_pres(day_plot_current))
 # dpeak <- c(B1,B2,B3)
 ```
 
+# Discussion
+
+The power estimate generated in this study has practical applications in real-world electrical engineering problems. An allocation must be made that balances the expected contribution of renewable energy sources with the expected residual demand on the electrical grid. An intelligent estimate of the contribution from PV modules must account for geographical deviations in solar irradiance. While the estimate here was made for Los Angeles, this framework can be applied to any location for which irradiance data is tracked. This framework could also be applied to intervals of time where power estimates could be made for each hour of the day or for each day of the year; greater stratified specificity would improve the real-world usefulness of this method. Further work...
+
+I THINK DISCUSSION AND FUTURE WORK SHOULD BE COMBINED. THEY FLOW INTO EACH OTHER QUITE NICELY. FEEL FREE TO MERGE THEM IF YOU WANT.
+
 # Future Work
 
 For future work, it would be good to examine the wider implications
