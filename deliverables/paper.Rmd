@@ -111,7 +111,9 @@ we felt that the data was acceptable for a
 replication of the process in @miozzo_2014,
 with the caveat that the calculations may only be approximate.
 
-# Preprocessing
+# Methods
+
+## Preprocessing
 
 To translate raw irradiance data into meaningful power data, several steps
 had to be taken to simulate the electrical workings of a real PV module. First,
@@ -176,22 +178,8 @@ $$
 where $n_{p} = 6$ is the assumed number of parallel-wired solar cells in the module and $n_{s} = 6$ is the assumed number of series-wired solar cells in the module [@miozzo_2014, p. 691].
 A final conversion efficiency factor $\eta = .211$ is applied and $P'_{max} = \eta P_{max}$ is returned.
 
-# Methods
 
 ## Data filtering
-
-```{r filter, include=FALSE}
-HOUR_WINDOW <- 11:16
-df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
-filtered_power_hist <- ggplot() +
-  geom_histogram(aes(x = df_high_irradiance$power_out, y = ..density..), binwidth = .0025) +
-  theme_bw() +
-  labs(
-    title = "Distribution of Power Outputs", subtitle = "Restricted to high irradiance hours of the day",
-    x = "Power Output", y = "Density"
-  )
-print(filtered_power_hist)
-```
 
 ## Bootstrapping
 
@@ -339,6 +327,18 @@ print(time_series_ghi)
 print(time_series_power)
 ```
 
+
+The data is obviously periodic.
+Both the GHI values and the simulated output power values
+were periodic by day.
+Both have a similar shape, 
+even with similar random variation,
+as is evidenced
+by Figure \ref{fig:ghi-ts} and Figure \ref{fig:power-ts}.
+This makes sense, as power output is a direct
+calculation (on our simulated model)
+from the solar radiance values.
+
 ```{r ghi-hour-boxplot, fig.cap="Distribution of GHI at each hour for the entire unfiltered dataset.", echo=FALSE}
 print(hour_plot_ghi)
 ```
@@ -347,6 +347,65 @@ print(hour_plot_ghi)
 print(hour_plot_power)
 ```
 
+It should be noted that the hourly distribution
+of values for GHI and simulated power did not have
+exactly the same shape,
+as evidenced by Figure \ref{fig:ghi-hour-boxplot}
+and Figure \ref{power-hour-boxplot}.
+Both figures have values that,
+on average, move upward throughout the day,
+and then down towards zero at night.
+Nighttime accounts for the structural zeros seen the figures.
+The variation in the values over the day is due to expected
+variation in radiation due to the seasons,
+and random variation, like cloud cover.
+Some of the random variation can be seen in
+Figure \ref{fig:ghi-ts} and Figure \ref{fig:power-ts}.
+The range of distributions in Figure \ref{power-hour-boxplot}
+was used to guide the data filtering described in the next section.
+
+## Data Filtering
+
+```{r filter, include=FALSE}
+HOUR_WINDOW_LOW = 8
+HOUR_WINDOW_HIGH = 16
+HOUR_WINDOW <- HOUR_WINDOW_LOW:HOUR_WINDOW_HIGH
+
+df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
+```
+
+Data was filtered to eliminate low- or no-irradiance hours
+from the dataset.
+The low-irradiance hours can be seen in
+Figure \ref{fig:unfiltered-hist}
+and Figure \ref{fig:ghi-hour-boxplot}.
+Filtering provides a more accurate measure of the power output
+during the daytime hours.
+The data was filtered to only include hours
+between `r HOUR_WINDOW_LOW` and `r HOUR_WINDOW_HIGH`,
+on a 24-hour timescale.
+The distribution of power output values after filtering
+can be seen in Figure \ref{fig:filtered-hist}.
+
+```{r unfiltered-hist, fig.cap = "Distribution of power outputs before filtering low-irradiance hours.", echo=FALSE}
+unfiltered_power_hist <- ggplot() +
+  geom_histogram(aes(x = df$power_out, y = ..density..)) +
+  theme_bw() +
+  labs(
+    x = "Power Output", y = "Density"
+  )
+print(unfiltered_power_hist)
+```
+
+```{r filtered-hist, fig.cap = "Distribution of power outputs after filtering low-irradiance hours.", echo=FALSE}
+filtered_power_hist <- ggplot() +
+  geom_histogram(aes(x = df_high_irradiance$power_out, y = ..density..)) +
+  theme_bw() +
+  labs(
+    x = "Power Output", y = "Density"
+  )
+print(filtered_power_hist)
+```
 
 ## Bootstrapping
 
@@ -411,12 +470,18 @@ iid_bootstrap_estimates_from_df <- function(df, B = 10000) {
   boot_power <- boot(df$power_out, meanv, B)
   return(boot_power$t)
 }
+```
 
+```{r boot, include=FALSE}
 boot_block <- block_bootstrap_estimates_from_df(df_high_irradiance)
 boot_block_df <- data.frame(boot = boot_block, type = rep("Block", length(boot_block)))
 boot_iid <- iid_bootstrap_estimates_from_df(df_high_irradiance)
 boot_iid_df <- data.frame(boot = boot_iid, type = rep("iid", length(boot_iid)))
 
+boot_mean_est <- mean(boot_block)
+```
+
+```{r vis, echo=FALSE}
 vis_df <- rbind(boot_block_df, boot_iid_df)
 
 # percentile bootstrap CI used
@@ -453,14 +518,54 @@ c("Block", paste("(", round(block_ci[1],3),",", round(block_ci[2], 3), ")"))
 )
 colnames(bootstrap_ci_table) <- c("Bootstrap Method", "95% CI")
 rownames(bootstrap_ci_table) <- c()
-
 bootstrap_ci_table %>% kable(booktabs = TRUE,
 caption="95% confidence intervals for the mean simulated power, as generated by each of the two bootstrapping methods.")
-
-
 ```
 
+Bootstrapping was carried out with both the
+*iid* and block bootstrapping methods.
+95\% percentile confidence intervals for the mean power output
+based on both methods are shown in Table 1.
+It should be noted that the bounds for each method are
+similar to one another on an absolute scale,
+though on a relative scale of bootstrap estimates,
+the *iid* bootstrap produced a smaller interval.
+The interval widths for the bootstrap estimates,
+along with histograms of the bootstrap estimates,
+are shown in Figure \ref{fig:mean-boot-plot}.
 
+The bootstrapped average power value,
+based on the block bootstrap,
+was `r round(boot_mean_est, 3)` W.
+This provides an accurate estimate of the
+average power during daylight hours
+provided by the physical solar panel model.
+In particular, we report the estimated value
+from the block bootstrap because
+it accounts for time dependence.
+In this case the mean value between the two
+methods was very similar,
+as seen in Figure \ref{fig:mean-boot-plot}.
+However, given that we know this boostrapping
+method provides a better estimate for the density overall,
+it seems more sound to report the block bootstrap estimate.
+
+```{r power-output-est, echo=FALSE}
+power_out_est_day = boot_mean_est * length(HOUR_WINDOW)
+power_out_est_year = power_out_est_day * 365
+```
+
+Based on our block bootstrap estimate,
+a solar panel in LA in our configuration
+would produce
+`r round(power_out_est_day)` Wh
+of energy over the course of a day.
+The panels would produce
+`r round(power_out_est_year)` Wh
+or 
+`r round(power_out_est_year/1000)` kWh
+of energy over the course of one year,
+on average.
 
 ```{r sampling, include=FALSE}
 time_series_irradiance <- function(df, variable, var_name, hour_range) {
@@ -483,36 +588,15 @@ time_series_irradiance <- function(df, variable, var_name, hour_range) {
 sixhr_plot_power <- time_series_irradiance(df_high_irradiance, "power_out", "Power Output", 6)
 ggsave("./images/sixhr_plot_power.png", make_plot_for_pres(sixhr_plot_power))
 
-HOUR_WINDOW <- 8:19
-df_more_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
-filtered_power_hist <- ggplot() +
-  geom_histogram(aes(x = df_high_irradiance$power_out)) +
-  theme_bw()
-print(filtered_power_hist)
-
-twelvehr_plot_power <- time_series_irradiance(df_more_irradiance, "power_out", "Power Output", 12)
+twelvehr_plot_power <- time_series_irradiance(df_high_irradiance, "power_out", "Power Output", 12)
 ggsave("./images/twelvehr_plot_power.png", make_plot_for_pres(twelvehr_plot_power))
 
 day_plot_power <- time_series_irradiance(df, "power_out", "Power Output", 24)
 ggsave("./images/day_plot_power.png", make_plot_for_pres(day_plot_power))
-
-
-# B1 <- df[df$Hour == c(7:10),]$current_output # Hours before peak
-# B2 <- df[df$Hour == c(11:14),]$current_output # Peak hours
-# B3 <- df[df$Hour == c(15:18),]$current_output # Hours after peak
-
-# nbb(hours, 4) # in order to make b blocks I would need to solve for b = [n/l] (floor) where n is the length of our data and l is 4, so make nbb call l instead of ib
-
-# nbb(hours, 12)
-
-# Could also block instead by hours but by total current output. Peak hours
-# would be a frame around the highest output and then hours before and after
-# would coincide with that. This would cause the hours to potentially be
-# different based on the season/month as months that get dark earlier could see
-# peak hours earlier in the day.
-
-# dpeak <- c(B1,B2,B3)
 ```
+
+
+
 
 # Discussion
 
