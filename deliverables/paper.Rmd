@@ -19,7 +19,7 @@ library(tidyverse)
 library(boot)
 ```
 
-```{r knitr-opts}
+```{r knitr-opts, echo=FALSE}
 knitr::opts_chunk$set(fig.pos = "t", fig.align = 'center', out.width = "75%", out.extra = "")
 ```
 
