@@ -600,7 +600,49 @@ ggsave("./images/day_plot_power.png", make_plot_for_pres(day_plot_power))
 
 # Discussion
 
-The power estimate generated in this study has practical applications in real-world electrical engineering problems. An allocation must be made that balances the expected contribution of renewable energy sources with the expected residual demand on the electrical grid. An intelligent estimate of the contribution from PV modules must account for geographical deviations in solar irradiance. While the estimate here was made for Los Angeles, this framework can be applied to any location for which irradiance data is tracked. This framework could also be applied to intervals of time where power estimates could be made for each hour of the day or for each day of the year; greater stratified specificity would improve the real-world usefulness of this method. Further work...
+These estimates provide consumers with an answer to 
+a very pressing question. As discussed in the introduction, one of the biggest 
+problems about purchasing a solar panel is whether or not 
+it will end up paying for itself. One of the three stipulations in 
+order to calculate your average yearly return is a solar 
+panels output. After using bootstrapping we were able to 
+calculate a solar panel in Los Angeles' production 
+output being `r round(power_out_est_year/1000)`. Now, all 
+that is needed is the peak hours and total average cost/kWh. 
+The former can be calculated by setting a lower floor on 
+solar irradiance. Stated on Solar Reviews, 
+"1 peak sun hour" is equal to, "1000 W/m² of sunlight 
+per hour", meaning our length used initially for an hour window 
+would be considered peak hours. Taking this total of `r length(HOUR_WINDOW)` 
+peak hours and our average cost per kilowatt-hour of /$0.03 from before 
+we would find that on average a consumer in Los Angeles can 
+anticipate earning /$`r round(power_out_est_year/1000,2)*.03*length(HOUR_WINDOW)` yearly on one solar panel grid. 
+Knowing this, any resident located in or around the Los Angeles area should
+feel confident in their decision of purchasing a solar panel unit. 
+
+The power estimate generated in this study has practical applications 
+in real-world electrical engineering problems. An allocation must be 
+made that balances the expected contribution of renewable energy 
+sources with the expected residual demand on the electrical grid. 
+An intelligent estimate of the contribution from PV modules must account 
+for geographical deviations in solar irradiance. While the estimate here 
+was made for Los Angeles, this framework can be applied to any location 
+for which irradiance data is tracked. This framework could also be applied to 
+intervals of time where power estimates could be made for each hour of the 
+day or for each day of the year; greater stratified specificity would 
+improve the real-world usefulness of this method. 
+
+In regard to consumer usage, an automated website could be created 
+related to the information received in this paper. A simple 
+user input of location could pull all the values necessary to caluclate
+a predicied solar irradiance and transform that 
+information, as we did above, into an estimate of total yearly 
+solar panel energy cost return. This may not even just be important 
+information to jsut consumers, considering the push of renewable energy 
+research in the last few years by the US governement, this could be used
+to find the best areas in the US to began creating large-scale solar plants. 
+Finding the best city throughout the US in which NREL holds data on would turn 
+our problem into an optimization one. 
 
 I THINK DISCUSSION AND FUTURE WORK SHOULD BE COMBINED. THEY FLOW INTO EACH OTHER QUITE NICELY. FEEL FREE TO MERGE THEM IF YOU WANT.
 
@@ -637,14 +679,3 @@ sources, to name a few (@constante_2018).
 ```{r show-code, ref.label = all_labels(), echo = TRUE, eval = FALSE}
 
 ```
-
-
-
-- We chose our initial paper because of its use of Monte Carlo. After working with it for a little it was brought to our attention that Monte Carlo was used in conjunction with a backward/forward sweep method in order to calculate the pdf. After some confusion it was decided to switch to another paper dealing with the same data/motivation but without said methods (including Monte Carlo).
-- Luckily, the week after we switched papers we begun learning about bootstrapping, a way to sample from our data while taking into consideration our time change.
-
-INSERT GRAPHS FROM IID BOOTSTRAPPING AND BLOCK HERE
-ALSO INSERT FIG 1 FROM PAPER
-
-- The paper focused most of their sampling on night-day clustering, showing the difference between night and day through current. Night yielded thousands of 0 current values, leading to skewed data when sampling. Instead we took too approaches to bootstrap the current vs. hour data.
-- One using non-overlapping blocks sampling from the 8 hours surrounding the peak irradiance. The other being IID, yielding dependence in our data.
