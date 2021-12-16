@@ -19,7 +19,7 @@ library(tidyverse)
 library(boot)
 ```
 
-```{r knitr-opts}
+```{r knitr-opts, echo=FALSE}
 knitr::opts_chunk$set(fig.pos = "t", fig.align = 'center', out.width = "75%", out.extra = "")
 ```
 
@@ -387,7 +387,7 @@ on a 24-hour timescale.
 The distribution of power output values after filtering
 can be seen in Figure \ref{fig:filtered-hist}.
 
-```{r unfiltered-hist, fig.cap = "Distribution of power outputs before filtering low-irradiance hours.", echo=FALSE}
+```{r unfiltered-hist, fig.cap = "Distribution of power outputs before filtering low-irradiance hours.", echo=FALSE, warning=FALSE}
 unfiltered_power_hist <- ggplot() +
   geom_histogram(aes(x = df$power_out, y = ..density..)) +
   theme_bw() +
@@ -397,7 +397,7 @@ unfiltered_power_hist <- ggplot() +
 print(unfiltered_power_hist)
 ```
 
-```{r filtered-hist, fig.cap = "Distribution of power outputs after filtering low-irradiance hours.", echo=FALSE}
+```{r filtered-hist, fig.cap = "Distribution of power outputs after filtering low-irradiance hours.", echo=FALSE, warning=FALSE}
 filtered_power_hist <- ggplot() +
   geom_histogram(aes(x = df_high_irradiance$power_out, y = ..density..)) +
   theme_bw() +
@@ -481,7 +481,7 @@ boot_iid_df <- data.frame(boot = boot_iid, type = rep("iid", length(boot_iid)))
 boot_mean_est <- mean(boot_block)
 ```
 
-```{r vis, echo=FALSE}
+```{r vis, echo=FALSE, warning=FALSE}
 vis_df <- rbind(boot_block_df, boot_iid_df)
 
 # percentile bootstrap CI used
