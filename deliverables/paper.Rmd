@@ -442,6 +442,8 @@ filtered_power_hist <- ggplot() +
 print(filtered_power_hist)
 ```
 
+\pagebreak
+
 ## Bootstrapping
 
 ```{r functions, include=FALSE}
