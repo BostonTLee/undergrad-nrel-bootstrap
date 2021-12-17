@@ -123,6 +123,8 @@ Because ETR and GHI are closely related,
 we felt that the data was acceptable for a
 replication of the process in @miozzo_2014,
 with the caveat that the calculations may only be approximate.
+GHI is measured in units of $W/m^2$, that is,
+power per unit area provided by solar radiation.
 
 # Methods
 
@@ -320,8 +322,8 @@ time_series_of_var <- function(df, variable, var_name, n_days) {
   return(ret_plot)
 }
 
-time_series_ghi <- time_series_of_var(df, "GHI", "GHI", 6)
-time_series_power <- time_series_of_var(df, "power_out", "Output power", 6)
+time_series_ghi <- time_series_of_var(df, "GHI", "GHI (W/m^2)", 6)
+time_series_power <- time_series_of_var(df, "power_out", "Output power (W)", 6)
 ggsave("./images/time_series_ghi.png", make_plot_for_pres(time_series_ghi))
 ggsave("./images/time_series_power.png", make_plot_for_pres(time_series_power))
 ```
@@ -346,8 +348,8 @@ hour_plot_of_var <- function(df, variable, var_name) {
   return(ret_plot)
 }
 
-hour_plot_ghi <- hour_plot_of_var(df, "GHI", "GHI")
-hour_plot_power <- hour_plot_of_var(df, "power_out", "Output Power")
+hour_plot_ghi <- hour_plot_of_var(df, "GHI", "GHI (W/m^2)")
+hour_plot_power <- hour_plot_of_var(df, "power_out", "Output Power (W)")
 ggsave("./images/hour_plot_ghi.png", make_plot_for_pres(hour_plot_ghi))
 ggsave("./images/hour_plot_power.png", make_plot_for_pres(hour_plot_power))
 ```
@@ -425,7 +427,7 @@ unfiltered_power_hist <- ggplot() +
   geom_histogram(aes(x = df$power_out, y = ..density..), bins=50) +
   theme_bw() +
   labs(
-    x = "Power Output", y = "Density"
+    x = "Power Output (W)", y = "Density"
   )
 print(unfiltered_power_hist)
 ```
@@ -435,7 +437,7 @@ filtered_power_hist <- ggplot() +
   geom_histogram(aes(x = df_high_irradiance$power_out, y = ..density..), bins=50) +
   theme_bw() +
   labs(
-    x = "Power Output", y = "Density"
+    x = "Power Output (W)", y = "Density"
   )
 print(filtered_power_hist)
 ```
@@ -618,13 +620,13 @@ time_series_irradiance <- function(df, variable, var_name, hour_range) {
   return(ret_plot)
 }
 
-sixhr_plot_power <- time_series_irradiance(df_high_irradiance, "power_out", "Power Output", 6)
+sixhr_plot_power <- time_series_irradiance(df_high_irradiance, "power_out", "Power Output (W)", 6)
 ggsave("./images/sixhr_plot_power.png", make_plot_for_pres(sixhr_plot_power))
 
-twelvehr_plot_power <- time_series_irradiance(df_high_irradiance, "power_out", "Power Output", 12)
+twelvehr_plot_power <- time_series_irradiance(df_high_irradiance, "power_out", "Power Output (W)", 12)
 ggsave("./images/twelvehr_plot_power.png", make_plot_for_pres(twelvehr_plot_power))
 
-day_plot_power <- time_series_irradiance(df, "power_out", "Power Output", 24)
+day_plot_power <- time_series_irradiance(df, "power_out", "Power Output (W)", 24)
 ggsave("./images/day_plot_power.png", make_plot_for_pres(day_plot_power))
 ```
 
