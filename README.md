@@ -54,4 +54,4 @@ To replicate data preprocessing:
 
 To replicate the paper and presentation:
 
-1. Knit both the paper and presentation with `knitr`.
+1. Knit both the paper and presentation in `deliverables/` with `knitr`.
