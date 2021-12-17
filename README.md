@@ -31,8 +31,8 @@ Requires:
 
 To install the necessary python packages:
 
-1. Make a virtual environment: `python3 -m venv solarenv`
-1. Activate the virtual environment: `source solarenv/bin/activate`
+1. Make a virtual environment: `python3 -m venv solarenv` (optional)
+1. Activate the virtual environment: `source solarenv/bin/activate` (optional)
 1. Install the required `python3` packages: `pip install -r requirements.txt`
 
 To replicate the data download:
