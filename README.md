@@ -1,8 +1,12 @@
 # Estimating PV Output from Solar Irradiance
 
-## `R` Packages required for this project
+## Packages required for this project
 
-This project requires:
+System packages:
+
+- A working distribution of LaTeX
+
+`R` packages:
 
 ```
 bookdown
