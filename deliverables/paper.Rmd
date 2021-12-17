@@ -40,24 +40,34 @@ make_plot_for_pres <- function(plot) {
 
 # Background
 
-
 This project began with the search for a research paper
 utilizing the process of Monte Carlo sampling or other 
-statistcal computing methods. We landed on a few papers 
-that did exatcly this, one titled, "SolarStat: Modeling 
-Photovoltaic Sources through Stochastic Markov Processes". 
-Instead of comparing our works of Monte Carlo simulations 
-we were able to utilize a more recent topic discussed in class.
-This of course was bootsrapping, a topic we didn't get too in
-depth about; however, everything needed to know will be explained 
-later on in the paper. Regarding our choice of articles, it was a
-question of interest and importance. During the last decade the world
-has seen a massive uptick in renewable energy pushes. With this 
-new wave of renewables and the rather large misunderstanding of their
-total power we decided it would be interesting to look into solar and 
-what it was all about. The big question being asked regarding
+statistical computing methods. We landed on a few papers 
+that did exactly this, titled "SolarStat: Modeling 
+Photovoltaic Sources through Stochastic Markov Processes"
+(@miozzo_2014). 
+The paper's objectives were to simulate power output from
+a small grid of solar panels in Los Angeles using solar radiance data,
+and then cluster those results into different levels
+of radiance using Markov models.
+We adapted this approach.
+The goal of this paper was to use the power output
+simulation model from @miozzo_2014 to obtain similar
+power output results,
+and then to apply and compare two types of bootstrapping estimates,
+resulting in an overall estimate of power output.
+The two types of bootstrapping estimates
+are an *iid* bootstrap, which assumes the data is independent,
+and a block bootstrap, which assumes dependence in the data.
+We wanted to see in what ways these methods produced differing
+results, and hopefully obtain an accurate estimate of energy output.
+
+This problem is relevant to current trends in energy:
+During the last decade the world
+has seen a massive uptick in renewable energy pushes. 
+The big question being asked regarding
 solar power is whether or not it is worth heading the initial cost
-of set up and general mantienance. Many websites inform users of 
+of set up and general maintenance. Many websites inform users of 
 just this, according to the Solar.com Learning Center, the average
 solar panel net cost is \$2,700 per 1.5 kilowatt-hour system (@solar.com). 
 The biggest upside to solar panels is being able to slice down your 
@@ -119,13 +129,21 @@ with the caveat that the calculations may only be approximate.
 ## Preprocessing
 
 To translate raw irradiance data into meaningful power data, several steps
-had to be taken to simulate the electrical workings of a real PV module. First,
+had to be taken to simulate the electrical workings of a real PV (photovoltaic)
+module. First,
 adjustments had to be made to account for the fact that an imperfect amount of
 irradiance actually reaches a PV module for capture. Then, effective irradiance
 must be translated into output current and maximized with an attached power
 processor. The process and accompanying assumptions are given below.
 
-## Effective Irradiance
+Note that, for all physical parameters given,
+@miozzo_2014 relied on the physical characteristics
+of a Solarbotics SCC-3733 Monocrystalline micro-solar panel
+[@miozzo_2014, p. 691].
+This means that all power output results should be
+weighed against this model panel.
+
+### Effective Irradiance
 
 The effective irradiance that reaches a PV module is different from the total
 irradiance emitted by the sun due to a variety of small considerations that
@@ -161,7 +179,7 @@ The above calculations produce results in degrees but values were switched to ra
 Ultimately, $I_{eff} \propto I_{sun} cos \theta(t, N)$ resulted from our astronomical adjustments and was used for PV module
 calculations [@miozzo_2014, p. 689].
 
-## PV Module
+### PV Module
 
 Within the PV module, effective irradiance is translated into output current
 but the entire process is regulated by an attached power processor that ensure
@@ -184,8 +202,20 @@ A final conversion efficiency factor $\eta = .211$ is applied and $P'_{max} = \e
 
 ## Data filtering
 
-## Bootstrapping
+We assumed that based on the nature of solar data,
+the data would contain almost 50\% structural zeros,
+corresponding to nighttime hours.
+We decided that, after transforming GHI to power output,
+we would filter out the structural zeros
+based on the distribution of the output data,
+before analysis.
 
+This would provide a more accurate assessment of power
+output than simply averaging over a 24-hour period,
+in which many of the hours would have zero power output
+by nature of the day-night cycle.
+
+## Bootstrapping
 
 The main goal of this paper is to provide point and interval
 estimates for average (simulated) power output
@@ -624,13 +654,27 @@ this range as our peak hours. Taking this total of `r length(HOUR_WINDOW)`
 peak hours and our average cost per kilowatt-hour of \$0.03 from before 
 we would find that on average a consumer in Los Angeles can 
 anticipate earning \$`r round(round(power_out_est_year/1000,2)*.03*length(HOUR_WINDOW),2)` yearly on one solar panel grid. 
-Knowing this, any resident located in or around the Los Angeles area should
-feel confident in their decision of purchasing a solar panel grid. 
+It is unclear how these results would scale with a solar panel
+or solar grid using different components.
+Our simulation was based on physical parameters provided
+in @miozzo_2014,
+which in turn only estimate the characteristics of
+the model solar panel.
+Furthermore, the model solar panel was a "micro-solar" panel:
+the 6x6 grid of panels had a reported size of
+26.96 cm$^2$, according to @miozzo_2014 [@miozzo_2014, p. 695].
+A larger or more efficient panel may be able to generate more
+total power,
+meaning that it may be possible for a consumer to purchase
+a larger solar panel with more output.
 
 The power estimate generated in this study has practical applications 
-in real-world electrical engineering problems. An allocation must be 
-made that balances the expected contribution of renewable energy 
-sources with the expected residual demand on the electrical grid. 
+in real-world electrical engineering problems.
+In real-world power grids,
+the expected contribution of renewable energy 
+sources 
+is balanced
+with the expected residual demand on the electrical grid. 
 An intelligent estimate of the contribution from PV modules must account 
 for geographical deviations in solar irradiance. While the estimate here 
 was made for Los Angeles, this framework can be applied to any location 
@@ -641,23 +685,26 @@ improve the real-world usefulness of this method.
 
 In regard to consumer usage, an automated website could be created 
 related to the information received in this paper. A simple 
-user input of location could pull all the values necessary to caluclate
-a predicied solar irradiance and transform that 
+user input of location could pull all the values necessary to calculate
+a predicted solar irradiance and transform that 
 information, as we did above, into an estimate of total yearly 
 solar panel energy cost return. This may not even just be important 
-information to jsut consumers, considering the push of renewable energy 
-research in the last few years by the US governement, this could be used
+information to just consumers, considering the push of renewable energy 
+research in the last few years by the US government, this could be used
 to find the best areas in the US to began creating large-scale solar plants. 
-Finding the best city throughout the US in which NREL holds data on would turn 
-our problem into an optimization one. 
+Finding the best city throughout the US in which NREL collects data 
+would allow power output to be optimized by location,
+as it likely is in practice.
 
 For future work, it would be good to examine the wider implications
 of the inferential results explored in this paper.
-The model paper for this project simulated results for small solar panels
-in a specific configuration,
-making it hard to generalize the results to any meaningful solar array.
+As mentioned,
+the model paper for this project, @miozzo_2014, simulated
+results for small solar panels
+in a specific configuration.
+This makes it hard to generalize the results to any meaningful solar array.
 However, if the results could be generalized,
-it would be good to see how power output based on solar irradiance
+it would be useful to see how power output based on solar irradiance
 fits into a larger model of uncertainty surrounding renewable energy generation.
 One example of such an approach would be @constante_2018,
 in which PV output simulated from solar irradiance
