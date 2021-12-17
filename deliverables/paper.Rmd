@@ -2,24 +2,35 @@
 title: "Time Series Bootstrapping For Solar Current"
 author: "Evan Kessler, Adam Kiehl, and Boston Lee"
 date: "2021/12/16"
-output: pdf_document
+output: bookdown::pdf_document2
+bibliography: references.bib
 ---
 
-```{r reprod}
+```{r reprod, include=FALSE}
+# Reproducibility
 set.seed(400)
 ```
 
 ```{r libs, include=FALSE, message=FALSE}
+# Import packages
+library(knitr)
+library(bookdown)
 library(tidyverse)
 library(boot)
 ```
 
-```{r data, message=FALSE, warning=FALSE}
-df <- read_csv("../data/final/irradiance_full_final.csv") %>%
-  select(-'...1')
+```{r knitr-opts, echo=FALSE}
+knitr::opts_chunk$set(fig.pos = "t", fig.align = 'center', out.width = "75%", out.extra = "",
+message=FALSE, warning=FALSE)
 ```
 
-```{r plot-pres-func}
+```{r data, include=FALSE, message=FALSE, warning=FALSE}
+# Read in preprocessed data
+df <- read_csv("../data/final/irradiance_full_final.csv")
+```
+
+```{r plot-pres-func, include=FALSE}
+# Function to format plots for use in presentation
 make_plot_for_pres <- function(plot) {
   ret_plot <- plot +
     theme(text = element_text(size = 21))
@@ -27,9 +38,269 @@ make_plot_for_pres <- function(plot) {
 }
 ```
 
-# EDA
+# Background
 
-```{r timeseries, warning=FALSE}
+This project began with the search for a research paper
+utilizing the process of Monte Carlo sampling or other 
+statistical computing methods. We landed on a few papers 
+that did exactly this, titled "SolarStat: Modeling 
+Photovoltaic Sources through Stochastic Markov Processes"
+(@miozzo_2014). 
+The paper's objectives were to simulate power output from
+a small grid of solar panels in Los Angeles using solar radiance data,
+and then cluster those results into different levels
+of radiance using Markov models.
+We adapted this approach.
+The goal of this paper was to use the power output
+simulation model from @miozzo_2014 to obtain similar
+power output results,
+and then to apply and compare two types of bootstrapping estimates,
+resulting in an overall estimate of power output.
+The two types of bootstrapping estimates
+are an *iid* bootstrap, which assumes the data is independent,
+and a block bootstrap, which assumes dependence in the data.
+We wanted to see in what ways these methods produced differing
+results, and hopefully obtain an accurate estimate of energy output.
+
+This problem is relevant to current trends in energy:
+During the last decade the world
+has seen a massive uptick in renewable energy pushes. 
+The big question being asked regarding
+solar power is whether or not it is worth heading the initial cost
+of set up and general maintenance. Many websites inform users of 
+just this, according to the Solar.com Learning Center, the average
+solar panel net cost is \$2,700 per 1.5 kilowatt-hour system (@solar.com). 
+The biggest upside to solar panels is being able to slice down your 
+energy bill, and eventually have it pay for itself. In order to 
+calculate a solar panels net output experts recommend looking at three things:
+
+1. Determine your locations peak sun hours (average US around 4 hours/day)
+2. Determine your energy compensation (average \$0.03/kilowatt-hour (kWh))
+3. Determine your solar panels net energy output
+
+Once you have calculated these three numbers it is as easy as 
+multiplying them together to receive your daily solar panel 
+compensation (@energysage). As an example Energy Sage looked at 
+California receiving 5 peak hours of sunlight a day with a single 
+solar panel producing 290 watts/hour. Daily, this panel will produce 
+around 1.5 kWh per day yielding the owner a rough compensation 
+of \$16.42 a year.
+
+This paper looks at data from a 12 year period to determine the power 
+output of a small grid of solar panels
+located in Los Angeles, California,
+based on solar radiation data.
+The information gleaned from simulating power output
+can determine if,
+on an overall basis, a location produces a sufficient amount 
+of power from a solar panel.
+This gives customers information to determine
+whether or not they should make an investment in solar energy.
+
+# Data
+
+The data used was from the National Solar Radiation Database (NSRDB),
+provided by the National Renewable Energy Laboratory
+(NREL) (@nsrdb).
+The data was acquired via the NSRDB API (@nsrdb_api).
+
+The model paper for this project, @miozzo_2014
+used data cited from the NSRDB.
+However,
+there were some discrepancies between our data
+and the data used in @miozzo_2014.
+Firstly, the year range in the paper was 1991--2010,
+while the year range available when we acquired
+the data from the NSRDB API was 1998--2010.
+Secondly, the primary variable used in
+was extraterrestrial radiation,
+"the amount of global horizontal radiation that a location on Earth would
+receive if there was no atmosphere" (@nrel_glossary).
+Our primary measure was global horizontal radiation (GHI),
+which is the total solar radiation to reach
+a horizontal plane on the Earth's surface (@nrel_glossary).
+Because ETR and GHI are closely related,
+we felt that the data was acceptable for a
+replication of the process in @miozzo_2014,
+with the caveat that the calculations may only be approximate.
+GHI is measured in units of $W/m^2$, that is,
+power per unit area provided by solar radiation.
+
+# Methods
+
+## Preprocessing
+
+To translate raw irradiance data into meaningful power data, several steps
+had to be taken to simulate the electrical workings of a real PV (photovoltaic)
+module. First,
+adjustments had to be made to account for the fact that an imperfect amount of
+irradiance actually reaches a PV module for capture. Then, effective irradiance
+must be translated into output current and maximized with an attached power
+processor. The process and accompanying assumptions are given below.
+
+Note that, for all physical parameters given,
+@miozzo_2014 relied on the physical characteristics
+of a Solarbotics SCC-3733 Monocrystalline micro-solar panel
+[@miozzo_2014, p. 691].
+This means that all power output results should be
+weighed against this model panel.
+
+### Effective Irradiance
+
+The effective irradiance that reaches a PV module is different from the total
+irradiance emitted by the sun due to a variety of small considerations that
+must be made. Among these are the tilt and rotation of the Earth, the latitude
+and longitude of the PV module, and the inclination of the panel towards the
+horizon. Most simply, $I_{eff} \propto I_{sun} cos \theta(t, N)$ where $\theta
+\in [-\frac{\pi}{2},\frac{\pi}{2}]$ is the angle between the sunlight and the
+surface of the solar cell [@miozzo_2014, p. 689].
+$$
+\begin{aligned}
+cos \theta(t, N) = & sin \gamma(N) sin La cos \beta - \\
+& sin \gamma(N) cos La sin \beta cos \alpha + \\
+& cos \gamma(N) cos La cos \beta cos \omega(t,N) + \\
+& cos \gamma(N) sin La sin \beta cos \alpha cos \omega(t,N) + \\
+& cos \gamma(N) sin \beta sin \alpha sin \omega(t,N) \\
+\end{aligned}
+$$
+Here, $\gamma (N) = sin^{-1}[sin(.409)sin(D(N))]$ is known as the declination angle and is calculated from the angle of the Earth's axis and a metric $D(N) = 360(N - 81)/360$ where $N \in [1, 365]$ is the day of the year [@miozzo_2014, p. 689]. $La \in [0, \frac{\pi}{2}]$ is the latitude of the PV module in radians [@miozzo_2014, p. 689]. $\alpha = .524$ corresponds to whether the panel faces East or West and $\beta = .785$ describes the angle between the panel and the horizon [@miozzo_2014, p. 689].
+The constants $\alpha$ and $\beta$
+were supplied as assumptions based on the location of the NSRDB
+data [@miozzo_2014, p. 691].
+Finally, the hour angle $\omega(t, N)$ accounts for the angle of sunlight given the rotation of the Earth [@miozzo_2014, p. 689].
+$$
+\begin{aligned}
+w(t,N) &= 15 (AST(t,N) - 12) \\
+AST(t,N) &= t + \Delta t + ET(N) \\
+&= t + \frac{Lo - 15 UTC_{off}}{15} + ET(N) \\
+ET(N) &= [9.87sin(2D(N)) - 7.53cos(D(N)) - 1.5sin(D(N))] / 60
+\end{aligned}
+$$
+Here, $AST(t,N) \in [0,24]$ is the apparent solar time relative to the sun and is calculated as an adjustment to the current time $t$ based on longitude $Lo$, an offset from the coordinated universal time $UTC_{off}$, and the equation of time $ET(N)$ [@miozzo_2014, p. 689].
+The above calculations produce results in degrees but values were switched to radians before trigonometric functions were applied.
+Ultimately, $I_{eff} \propto I_{sun} cos \theta(t, N)$ resulted from our astronomical adjustments and was used for PV module
+calculations [@miozzo_2014, p. 689].
+
+### PV Module
+
+Within the PV module, effective irradiance is translated into output current
+but the entire process is regulated by an attached power processor that ensure
+that the maximum power is extracted. It does this by testing a range of open
+circuit voltages $v_{oc}$ between zero and an assumed maximum $v_{oc} = 1.8$ on
+the PV module's I-V curve which describes how current and voltage vary together
+for each solar cell in the module [@miozzo_2014, p. 691].
+Here, the I-V curve is given by
+$$
+i_{out} = i_{l} - i_{o}[e^{\frac{qv}{n \kappa T}} - 1]
+$$
+with constants $q = 1.6*10^{-19}$ and $\kappa = 1.38 * 10^{-23}$. The light-generated current $i_{l}(t,N) = .0005 I_{eff}(t,N)$ which adjusts $I_{eff}$ for the assumed short circuit current $i_{sc} = 5$ and a radiation rate factor [@miozzo_2014, p. 691].
+With a leakage factor $i_{o}$ and the ambient temperature $T$ in degrees Kelvin, $i_{out}$ can be calculated for various voltage values. The combined power of the module is then calculated by
+$$
+P = n_{p} n_{s} max\{i_{out} v\}
+$$
+where $n_{p} = 6$ is the assumed number of parallel-wired solar cells in the module and $n_{s} = 6$ is the assumed number of series-wired solar cells in the module [@miozzo_2014, p. 691].
+A final conversion efficiency factor $\eta = .211$ is applied and $P'_{max} = \eta P_{max}$ is returned.
+
+
+## Data filtering
+
+We assumed that based on the nature of solar data,
+the data would contain almost 50\% structural zeros,
+corresponding to nighttime hours.
+We decided that, after transforming GHI to power output,
+we would filter out the structural zeros
+based on the distribution of the output data,
+before analysis.
+
+This would provide a more accurate assessment of power
+output than simply averaging over a 24-hour period,
+in which many of the hours would have zero power output
+by nature of the day-night cycle.
+
+## Bootstrapping
+
+The main goal of this paper is to provide point and interval
+estimates for average (simulated) power output
+based on solar irradiance.
+Given that the sample size is large,
+a simple average may have been sufficient.
+However, we were interested in characterizing
+the difference in performance between
+standard bootstrapping methods and dependent bootstrapping methods.
+The power output provides a good test case for this.
+Both the preprocessed GHI
+and postprocessed power outputs are not independent data;
+values of either irradiance or power output
+depend on surrounding values in time.
+As such, standard methods for bootstrapping should be
+less effective at estimating the true mean irradiance output.
+
+The standard (*iid*) bootstrap procedure begins with
+the assumption that our original sample consists of
+independent and identically distributed draws from a distribution.
+The univariate bootstrap then provides a distribution of bootstrap
+estimates for a statistic,
+$\hat{\theta}^{(1)}, \ldots, \{\hat{\theta}^{(B)}$,
+where $B$ is the number of bootstrap replicates
+and $\theta$ is a statistic of interest.
+For our purposes, $\theta$ is simply the average power output
+for our specific solar module configuration.
+The *iid* bootstrap constructs the distribution of bootstrap estimates
+as follows:
+
+For $i = 1, \ldots, B$:
+
+1. Sample $n$ values $x_j$ from the data with replacement
+1. Calculate
+   $\hat{\theta}^{(i)} = \frac{1}{n} \sum_{j = 1}^{n} x_j$
+   for the bootstrap sample.
+
+
+In contrast, a dependent bootstrap does not assume
+the original sample was independent and identically distributed.
+To capture the dependence in the data,
+we chose to use a nonparametric non-overlapping block bootstrap.
+This is because during the data filtering step,
+we excluded nighttime values from the dataset.
+This meant we essentially had predefined,
+mostly independent blocks from which to sample:
+the daytime power values for each day.
+Given that our daytime power values for each day
+could be used as non-overlapping blocks,
+our dataset could be seen as a collection
+of $n_B$ blocks.
+
+
+For i = $1, \ldots, B$:
+
+1. Sample $n_B$ blocks (days)
+$\mathcal{B}_{1}, ..., \mathcal{B}_{n_B}$
+from the data with replacement.
+1. Calculate
+   $\hat{\theta}^{(i)} = \frac{1}{n} \sum_{j = 1}^{n} x_j$
+   on a new dataset
+  $\mathcal{B}_{1} \cup \cdots \cup \mathcal{B}_{n_B}$.
+
+
+The new dataset in Step 2
+corresponds to sampling and rearranging days to make
+a new dataset the same size as the original.
+This procedure preserves the dependence within days,
+while still allowing resampling.
+
+A percentile bootstrap confidence interval was calculated for both the
+dependent and *iid* estimates. This method was chosen for its simplicity and
+for the fact that the bootstrapped sampling distributions agreed with the
+assumption of normality under central limit theorem. Performing an *iid*
+bootstrap on dependent data should yield an artificially narrow confidence
+interval and this belief was supported by the relative widths of the resulting
+intervals. 
+
+# Results
+
+## Descriptive Statistics
+
+```{r timeseries, include=FALSE, warning=FALSE}
 
 #' Plot a timeseries of a single variable
 #'
@@ -51,13 +322,13 @@ time_series_of_var <- function(df, variable, var_name, n_days) {
   return(ret_plot)
 }
 
-time_series_ghi <- time_series_of_var(df, "GHI", "GHI", 6)
-time_series_current <- time_series_of_var(df, "current_out", "Output current", 6)
+time_series_ghi <- time_series_of_var(df, "GHI", "GHI (W/m^2)", 6)
+time_series_power <- time_series_of_var(df, "power_out", "Output power (W)", 6)
 ggsave("./images/time_series_ghi.png", make_plot_for_pres(time_series_ghi))
-ggsave("./images/time_series_current.png", make_plot_for_pres(time_series_current))
+ggsave("./images/time_series_power.png", make_plot_for_pres(time_series_power))
 ```
 
-```{r hour-plot}
+```{r hour-plot, include=FALSE}
 
 #' Plot the values of `variable` at each hour of the day
 #'
@@ -77,29 +348,105 @@ hour_plot_of_var <- function(df, variable, var_name) {
   return(ret_plot)
 }
 
-hour_plot_ghi <- hour_plot_of_var(df, "GHI", "GHI")
-hour_plot_current <- hour_plot_of_var(df, "current_out", "output current")
+hour_plot_ghi <- hour_plot_of_var(df, "GHI", "GHI (W/m^2)")
+hour_plot_power <- hour_plot_of_var(df, "power_out", "Output Power (W)")
 ggsave("./images/hour_plot_ghi.png", make_plot_for_pres(hour_plot_ghi))
-ggsave("./images/hour_plot_current.png", make_plot_for_pres(hour_plot_current))
+ggsave("./images/hour_plot_power.png", make_plot_for_pres(hour_plot_power))
+```
+
+```{r ghi-ts, fig.cap="Time series of GHI values for the first six days in the dataset", echo=FALSE}
+print(time_series_ghi)
+```
+
+```{r power-ts, fig.cap="Time series of simulated power values for the first six days in the dataset.", echo=FALSE}
+print(time_series_power)
 ```
 
 
-# Data filtering
+The data is obviously periodic.
+Both the GHI values and the simulated output power values
+were periodic by day.
+Both have a similar shape, 
+even with similar random variation,
+as is evidenced
+by Figure \ref{fig:ghi-ts} and Figure \ref{fig:power-ts}.
+This makes sense, as power output is a direct
+calculation (on our simulated model)
+from the solar radiance values.
 
-```{r filter}
-HOUR_WINDOW <- 11:16
+```{r ghi-hour-boxplot, fig.cap="Distribution of GHI at each hour for the entire unfiltered dataset.", echo=FALSE}
+print(hour_plot_ghi)
+```
+
+```{r power-hour-boxplot, fig.cap="Distribution of GHI at each hour for the entire unfiltered dataset.", echo=FALSE}
+print(hour_plot_power)
+```
+
+It should be noted that the hourly distribution
+of values for GHI and simulated power did not have
+exactly the same shape,
+as evidenced by Figure \ref{fig:ghi-hour-boxplot}
+and Figure \ref{fig:power-hour-boxplot}.
+Both figures have values that,
+on average, move upward throughout the day,
+and then down towards zero at night.
+Nighttime accounts for the structural zeros seen the figures.
+The variation in the values over the day is due to expected
+variation in radiation due to the seasons,
+and random variation, like cloud cover.
+Some of the random variation can be seen in
+Figure \ref{fig:ghi-ts} and Figure \ref{fig:power-ts}.
+The range of distributions in Figure \ref{fig:power-hour-boxplot}
+was used to guide the data filtering described in the next section.
+
+## Data Filtering
+
+```{r filter, include=FALSE}
+HOUR_WINDOW_LOW = 8
+HOUR_WINDOW_HIGH = 16
+HOUR_WINDOW <- HOUR_WINDOW_LOW:HOUR_WINDOW_HIGH
+
 df_high_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
-filtered_current_hist <- ggplot() +
-  geom_histogram(aes(x = df_high_irradiance$current_out, y = ..density..), binwidth = .0025) +
-  theme_bw() +
-  labs(title='Distribution of Current Outputs', subtitle='Restricted to high irradiance hours of the day', 
-       x = 'Current Output', y = 'Density')
-print(filtered_current_hist)
 ```
 
-# Bootstrapping
+Data was filtered to eliminate low- or no-irradiance hours
+from the dataset.
+The low-irradiance hours can be seen in
+Figure \ref{fig:unfiltered-hist}
+and Figure \ref{fig:ghi-hour-boxplot}.
+Filtering provides a more accurate measure of the power output
+during the daytime hours.
+The data was filtered to only include hours
+between `r HOUR_WINDOW_LOW` and `r HOUR_WINDOW_HIGH`,
+on a 24-hour timescale.
+The distribution of power output values after filtering
+can be seen in Figure \ref{fig:filtered-hist}.
 
-```{r functions}
+```{r unfiltered-hist, fig.cap = "Distribution of power outputs before filtering low-irradiance hours.", echo=FALSE, warning=FALSE}
+unfiltered_power_hist <- ggplot() +
+  geom_histogram(aes(x = df$power_out, y = ..density..), bins=50) +
+  theme_bw() +
+  labs(
+    x = "Power Output (W)", y = "Density"
+  )
+print(unfiltered_power_hist)
+```
+
+```{r filtered-hist, fig.cap = "Distribution of power outputs after filtering low-irradiance hours.", echo=FALSE, warning=FALSE}
+filtered_power_hist <- ggplot() +
+  geom_histogram(aes(x = df_high_irradiance$power_out, y = ..density..), bins=50) +
+  theme_bw() +
+  labs(
+    x = "Power Output (W)", y = "Density"
+  )
+print(filtered_power_hist)
+```
+
+\pagebreak
+
+## Bootstrapping
+
+```{r functions, include=FALSE}
 
 #' Given a dataframe, return a matrix of bootstrap blocks
 #'
@@ -120,7 +467,7 @@ make_blocks_from_df <- function(df) {
   stop <- length_of_block
   for (i in 1:number_of_blocks) {
     # blocks[i, ] <- df$current_out[(i - 1) * length_of_block + 1 : (i * length_of_block)]
-    blocks[i, ] <- df$current_out[start:stop]
+    blocks[i, ] <- df$power_out[start:stop]
     start <- start + length_of_block
     stop <- stop + length_of_block
   }
@@ -157,15 +504,21 @@ medianv <- function(data, idx) {
 }
 
 iid_bootstrap_estimates_from_df <- function(df, B = 10000) {
-  boot_current <- boot(df$current_out, meanv, B)
-  return(boot_current$t)
+  boot_power <- boot(df$power_out, meanv, B)
+  return(boot_power$t)
 }
+```
 
+```{r boot, include=FALSE}
 boot_block <- block_bootstrap_estimates_from_df(df_high_irradiance)
 boot_block_df <- data.frame(boot = boot_block, type = rep("Block", length(boot_block)))
 boot_iid <- iid_bootstrap_estimates_from_df(df_high_irradiance)
 boot_iid_df <- data.frame(boot = boot_iid, type = rep("iid", length(boot_iid)))
 
+boot_mean_est <- mean(boot_block)
+```
+
+```{r vis, echo=FALSE, warning=FALSE, message=FALSE}
 vis_df <- rbind(boot_block_df, boot_iid_df)
 
 # percentile bootstrap CI used
@@ -174,45 +527,92 @@ block_ci <- quantile(boot_block_df$boot, c(alpha / 2, 1 - alpha / 2))
 iid_ci <- quantile(boot_iid_df$boot, c(alpha / 2, 1 - alpha / 2))
 
 mean_boot_plot <- ggplot(vis_df) +
-  geom_histogram(aes(x = boot, y = ..density.., fill = type), position = "identity", alpha = .5, color = "black", 
-                 binwidth = .0001) +
+  geom_histogram(aes(x = boot, y = ..density.., fill = type),
+    position = "identity", alpha = .5, color = "black"
+  ) +
   # geom_segment(aes(x = block_ci[1], xend = block_ci[2], y = 1250, yend = 1250), color = 'tomato', alpha = .01) +
-  geom_vline(aes(xintercept = block_ci[1]), linetype = 'dashed', color = 'tomato', alpha = .5) +
-  geom_vline(aes(xintercept = block_ci[2]), linetype = 'dashed', color = 'tomato', alpha = .5) +
+  geom_vline(aes(xintercept = block_ci[1]), linetype = "dashed", color = "tomato", alpha = .5) +
+  geom_vline(aes(xintercept = block_ci[2]), linetype = "dashed", color = "tomato", alpha = .5) +
   # geom_segment(aes(x = iid_ci[1], xend = iid_ci[2], y = 1300, yend = 1300), color = 'turquoise3', alpha = .01) +
-  geom_vline(aes(xintercept = iid_ci[1]), linetype = 'dashed', color = 'turquoise3', alpha = .5) +
-  geom_vline(aes(xintercept = iid_ci[2]), linetype = 'dashed', color = 'turquoise3', alpha = .5) +
-  labs(fill = "Bootstrap Type", title='Bootstrapped Current Output', subtitle = 'Percentile confidence intervals given', 
-       x = 'Bootstrap Sample Means', y = 'Density') +
+  geom_vline(aes(xintercept = iid_ci[1]), linetype = "dashed", color = "turquoise3", alpha = .5) +
+  geom_vline(aes(xintercept = iid_ci[2]), linetype = "dashed", color = "turquoise3", alpha = .5) +
+  labs(
+    fill = "Bootstrap Type", title = "Bootstrapped Power Output", subtitle = "Percentile confidence intervals given",
+    x = "Bootstrap Sample Means", y = "Density"
+  ) +
   theme_bw()
 ggsave("./images/mean_boot_plot.png", make_plot_for_pres(mean_boot_plot), width = 16, height = 12)
 ```
 
-```{r}
-# rough MC coverage estimate assuming dependent bootstrap distribution as a null
-B <- 10000
-n <- nrow(boot_block_df)
-
-lower <- as.numeric(iid_ci[1])
-upper <- as.numeric(iid_ci[2])
-
-mu <- mean(boot_block_df$boot)
-sigma <- sd(boot_block_df$boot)
-
-sample <- rnorm(B, mu, sigma)
-
-sum(sample >= lower & sample <= upper) / n
+```{r mean-boot-plot, fig.cap="Distributions of bootstrap mean simulated power for both iid and block bootstrapping methods. Percentile 95 percent bootstrap confidence intervals for mean simulated power overlayed.", echo=FALSE}
+print(mean_boot_plot)
 ```
 
-```{r sampling}
+```{r bootstrap-ci, echo=FALSE}
+bootstrap_ci_table <- rbind(
+c("iid", paste("(", round(iid_ci[1],3),",", round(iid_ci[2],3), ")")),
+c("Block", paste("(", round(block_ci[1],3),",", round(block_ci[2], 3), ")"))
+)
+colnames(bootstrap_ci_table) <- c("Bootstrap Method", "95 Percent CI")
+rownames(bootstrap_ci_table) <- c()
+bootstrap_ci_table %>% kable(booktabs = TRUE,
+caption="95% confidence intervals for the mean simulated power, as generated by each of the two bootstrapping methods.")
+```
+
+Bootstrapping was carried out with both the
+*iid* and block bootstrapping methods.
+95\% percentile confidence intervals for the mean power output
+based on both methods are shown in Table 1.
+It should be noted that the bounds for each method are
+similar to one another on an absolute scale,
+though on a relative scale of bootstrap estimates,
+the *iid* bootstrap produced a smaller interval.
+The interval widths for the bootstrap estimates,
+along with histograms of the bootstrap estimates,
+are shown in Figure \ref{fig:mean-boot-plot}.
+
+The bootstrapped average power value,
+based on the block bootstrap,
+was `r round(boot_mean_est, 3)` W.
+This provides an accurate estimate of the
+average power during daylight hours
+provided by the physical solar panel model.
+In particular, we report the estimated value
+from the block bootstrap because
+it accounts for time dependence.
+In this case the mean value between the two
+methods was very similar,
+as seen in Figure \ref{fig:mean-boot-plot}.
+However, given that we know this boostrapping
+method provides a better estimate for the density overall,
+it seems more sound to report the block bootstrap estimate.
+
+```{r power-output-est, echo=FALSE}
+power_out_est_day = boot_mean_est * length(HOUR_WINDOW)
+power_out_est_year = power_out_est_day * 365
+```
+
+Based on our block bootstrap estimate,
+a solar panel in LA in our configuration
+would produce
+`r round(power_out_est_day)` Wh
+of energy over the course of a day.
+The panels would produce
+`r round(power_out_est_year)` Wh
+or 
+`r round(power_out_est_year/1000)` kWh
+of energy over the course of one year,
+on average.
+
+```{r sampling, include=FALSE}
 time_series_irradiance <- function(df, variable, var_name, hour_range) {
   newdf <- df %>%
     mutate(date = lubridate::make_datetime(Year, Month, Day, Hour, Minute)) %>%
     # each day in this dataset is subset from 11:16, meaning there is 6 hours per day
     head(hour_range * 6)
-  
-  blocks <- c(newdf$date[seq(1,length(newdf$date), hour_range)])
- 
+
+  blocks <- c(newdf$date[seq(1, length(newdf$date), hour_range)])
+
   ret_plot <- ggplot(newdf) +
     geom_line(aes_string(x = "date", y = variable)) +
     geom_vline(xintercept = blocks, colour = "red") +
@@ -222,45 +622,122 @@ time_series_irradiance <- function(df, variable, var_name, hour_range) {
   return(ret_plot)
 }
 
-sixhr_plot_current <- time_series_irradiance(df_high_irradiance, "current_out", "Current Output", 6)
-ggsave("./images/sixhr_plot_current.png", make_plot_for_pres(sixhr_plot_current))
+sixhr_plot_power <- time_series_irradiance(df_high_irradiance, "power_out", "Power Output (W)", 6)
+ggsave("./images/sixhr_plot_power.png", make_plot_for_pres(sixhr_plot_power))
 
-HOUR_WINDOW <- 8:19
-df_more_irradiance <- df[df$Hour %in% HOUR_WINDOW, ]
-filtered_current_hist <- ggplot() +
-  geom_histogram(aes(x = df_high_irradiance$current_out)) +
-  theme_bw()
-print(filtered_current_hist)
+twelvehr_plot_power <- time_series_irradiance(df_high_irradiance, "power_out", "Power Output (W)", 12)
+ggsave("./images/twelvehr_plot_power.png", make_plot_for_pres(twelvehr_plot_power))
 
-twelvehr_plot_current <- time_series_irradiance(df_more_irradiance, "current_out", "Current Output", 12)
-ggsave("./images/twelvehr_plot_current.png", make_plot_for_pres(twelvehr_plot_current))
-
-day_plot_current <- time_series_irradiance(df, "current_out", "Current Output", 24)
-ggsave("./images/day_plot_current.png", make_plot_for_pres(day_plot_current))
-
-
-# B1 <- df[df$Hour == c(7:10),]$current_output # Hours before peak
-# B2 <- df[df$Hour == c(11:14),]$current_output # Peak hours
-# B3 <- df[df$Hour == c(15:18),]$current_output # Hours after peak
-
-# nbb(hours, 4) # in order to make b blocks I would need to solve for b = [n/l] (floor) where n is the length of our data and l is 4, so make nbb call l instead of ib
-
-# nbb(hours, 12)
-
-# Could also block instead by hours but by total current output. Peak hours
-# would be a frame around the highest output and then hours before and after
-# would coincide with that. This would cause the hours to potentially be
-# different based on the season/month as months that get dark earlier could see
-# peak hours earlier in the day.
-
-# dpeak <- c(B1,B2,B3)
+day_plot_power <- time_series_irradiance(df, "power_out", "Power Output (W)", 24)
+ggsave("./images/day_plot_power.png", make_plot_for_pres(day_plot_power))
 ```
 
-- We chose our initial paper because of its use of Monte Carlo. After working with it for a little it was brought to our attention that Monte Carlo was used in conjunction with a backward/forward sweep method in order to calculate the pdf. After some confusion it was decided to switch to another paper dealing with the same data/motivation but without said methods (including Monte Carlo).
-- Luckily, the week after we switched papers we begun learning about bootstrapping, a way to sample from our data while taking into consideration our time change. 
+\pagebreak
 
-INSERT GRAPHS FROM IID BOOTSTRAPPING AND BLOCK HERE
-ALSO INSERT FIG 1 FROM PAPER
+# Discussion
 
-- The paper focused most of their sampling on night-day clustering, showing the difference between night and day through current. Night yielded thousands of 0 current values, leading to skewed data when sampling. Instead we took too approaches to bootstrap the current vs. hour data.
-- One using non-overlapping blocks sampling from the 8 hours surrounding the peak irradiance. The other being IID, yielding dependence in our data. 
+These estimates provide consumers with an answer to 
+a very pressing question. As discussed in the introduction, one of the biggest 
+problems about purchasing a solar panel is whether or not 
+it will end up paying for itself. One of the three stipulations in 
+order to calculate your average yearly return is a solar 
+panels output. After using bootstrapping we were able to 
+calculate a solar panel in Los Angeles' production 
+output being `r round(power_out_est_year/1000)`. Now, all 
+that is needed is the peak hours and total average cost per kWh. 
+The former can be calculated by setting a lower floor on 
+solar irradiance. As stated on Solar Reviews, 
+"1 peak sun hour" is equal to, "1000 W/m² of sunlight 
+per hour" (@energysage). In our calculations we used an hour window between 
+8am to 4pm, a typical day range where the sun is overhead. As a disclaimer,
+some of the values at the beginning and end of the day may not hold 
+exactly greater than our cutoff stated by Solar Reviews, however this range 
+yielded the greatest results of solar irradiance and Wh, some being much larger
+than 1000 W/m^2 and others being just under. Therefore, we decided to use 
+this range as our peak hours. Taking this total of `r length(HOUR_WINDOW)` 
+peak hours and our average cost per kilowatt-hour of \$0.03 from before 
+we would find that on average a consumer in Los Angeles can 
+anticipate earning \$`r round(round(power_out_est_year/1000,2)*.03*length(HOUR_WINDOW),2)` yearly on one solar panel grid. 
+It is unclear how these results would scale with a solar panel
+or solar grid using different components.
+Our simulation was based on physical parameters provided
+in @miozzo_2014,
+which in turn only estimate the characteristics of
+the model solar panel.
+Furthermore, the model solar panel was a "micro-solar" panel:
+the 6x6 grid of panels had a reported size of
+26.96 cm$^2$, according to @miozzo_2014 [@miozzo_2014, p. 695].
+A larger or more efficient panel may be able to generate more
+total power,
+meaning that it may be possible for a consumer to purchase
+a larger solar panel with more output.
+
+The power estimate generated in this study has practical applications 
+in real-world electrical engineering problems.
+In real-world power grids,
+the expected contribution of renewable energy 
+sources 
+is balanced
+with the expected residual demand on the electrical grid. 
+An intelligent estimate of the contribution from PV modules must account 
+for geographical deviations in solar irradiance. While the estimate here 
+was made for Los Angeles, this framework can be applied to any location 
+for which irradiance data is tracked. This framework could also be applied to 
+intervals of time where power estimates could be made for each hour of the 
+day or for each day of the year; greater stratified specificity would 
+improve the real-world usefulness of this method. 
+
+In regard to consumer usage, an automated website could be created 
+related to the information received in this paper. A simple 
+user input of location could pull all the values necessary to calculate
+a predicted solar irradiance and transform that 
+information, as we did above, into an estimate of total yearly 
+solar panel energy cost return. This may not even just be important 
+information to just consumers, considering the push of renewable energy 
+research in the last few years by the US government, this could be used
+to find the best areas in the US to began creating large-scale solar plants. 
+Finding the best city throughout the US in which NREL collects data 
+would allow power output to be optimized by location,
+as it likely is in practice.
+
+For future work, it would be good to examine the wider implications
+of the inferential results explored in this paper.
+As mentioned,
+the model paper for this project, @miozzo_2014, simulated
+results for small solar panels
+in a specific configuration.
+This makes it hard to generalize the results to any meaningful solar array.
+However, if the results could be generalized,
+it would be useful to see how power output based on solar irradiance
+fits into a larger model of uncertainty surrounding renewable energy generation.
+One example of such an approach would be @constante_2018,
+in which PV output simulated from solar irradiance
+is used in conjunction with other sources of of uncertainty.
+The estimates of PV output in this paper are only part
+of the story with respect to uncertainty in PV power generation.
+Other relevant types of uncertainty are uncertainty of energy demand,
+uncertainty in personal PV module placement on the grid,
+and uncertainty in the power generation of other renewable energy
+sources, to name a few (@constante_2018).
+
+\pagebreak
+
+&nbsp;
+
+\pagebreak
+
+&nbsp;
+
+\pagebreak
+
+# References
+
+<div id="refs"></div>
+
+\newpage
+
+# Appendix
+
+```{r show-code, ref.label = all_labels(), echo = TRUE, eval = FALSE}
+
+```
